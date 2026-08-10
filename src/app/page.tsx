@@ -776,13 +776,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="p-4 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                  {quranData.surah !== 9 && quranData.surah !== 1 && (
-                    <p className="text-center text-2xl text-emerald-800 font-medium pb-6 mb-6 border-b border-emerald-100" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
-                  )}
                   <div className="space-y-6">
-                    {quranData.ayahs
-                      .filter((a) => quranData.surah === 1 || quranData.surah === 9 || a.numberInSurah > 1)
-                      .map((ayah) => (
+                    {quranData.ayahs.map((ayah) => (
                       <div key={ayah.number} className="flex gap-3">
                         <span className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700 text-xs font-bold mt-1">{ayah.numberInSurah}</span>
                         <p className="text-xl sm:text-2xl text-gray-900 leading-[2.5] font-medium flex-1" dir="rtl" lang="ar">{ayah.arabic}</p>
