@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useTheme } from "next-themes";
 import { surahs, introductions, type Surah, type SurahAudio } from "@/lib/surah-data";
 import { asmaUlHusna } from "@/lib/asma-ul-husna";
+import { paras } from "@/lib/quran-paras";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ export default function Home() {
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("surahs");
+  const [activeTab, setActiveTab] = useState<TabType>("asmaulhusna");
   const [asmaSearch, setAsmaSearch] = useState("");
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -560,9 +561,9 @@ export default function Home() {
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
-    { key: "surahs", label: `Surahs (114)`, icon: <List className="w-4 h-4" /> },
-    { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
     { key: "asmaulhusna", label: "Asma ul Husna", icon: <Sparkles className="w-4 h-4" /> },
+    { key: "surahs", label: "Bayan ul Quran", icon: <Headphones className="w-4 h-4" /> },
+    { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
     { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
   ];
 
@@ -638,8 +639,8 @@ export default function Home() {
                   <span className="sm:hidden">Donate</span>
                 </Button>
               </a>
-              <Button size="sm" className="bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-red-100 border border-red-400/30 text-xs sm:text-sm gap-1.5 font-medium" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
-                <LogOut className="w-3.5 h-3.5" />
+              <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm gap-1.5 font-bold shadow-md hover:shadow-lg" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
+                <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Sign Out</span>
                 <span className="sm:hidden">Out</span>
               </Button>
@@ -879,7 +880,7 @@ export default function Home() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-emerald-900 p-4">
               <Button
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold h-12 text-sm gap-2"
-                onClick={() => { setUseGeo(true); setPrayerData(null); fetchPrayerTimes(); }}
+                onClick={() => { setPrayerData(null); fetchPrayerTimes(); }}
                 disabled={prayerLoading}
               >
                 <MapPin className="w-4 h-4" />
