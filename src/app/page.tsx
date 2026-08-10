@@ -500,19 +500,29 @@ export default function Home() {
     if (typeof (DeviceOrientationEvent as any).requestPermission === "function" && hasGyro === null) {
       return;
     }
-    const onOrientation = (e: DeviceOrientationEvent) => {
-      if (e.alpha !== null) {
+    const onOrientation = (e: any) => {
+      // Use webkitCompassHeading if available (iOS & some Android) — gives true north heading
+      // Otherwise fall back to alpha
+      let heading: number | null = null;
+      if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha !== null && e.absolute === true) {
+        heading = e.alpha;
+      } else if (e.alpha !== null) {
+        // Non-absolute alpha — better than nothing but may drift
+        heading = e.alpha;
+      }
+
+      if (heading !== null) {
         // Low-pass filter: smooth out jitter
-        const raw = e.alpha;
         if (smoothHeadingRef.current === null) {
-          smoothHeadingRef.current = raw;
+          smoothHeadingRef.current = heading;
         } else {
           const prev = smoothHeadingRef.current;
-          // Handle wrap-around (e.g., 359 -> 1)
-          let diff = raw - prev;
+          let diff = heading - prev;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
-          smoothHeadingRef.current = ((prev + diff * 0.15) % 360 + 360) % 360;
+          smoothHeadingRef.current = ((prev + diff * 0.3) % 360 + 360) % 360;
         }
         setDeviceHeading(smoothHeadingRef.current);
         setHasGyro(true);
@@ -1039,9 +1049,9 @@ export default function Home() {
 
       
       {showPlayer && currentTrack && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-emerald-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-          {/* Touch-friendly seekbar - uses native range input for reliable mobile dragging */}
-          <div className="px-2 pt-2">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-50 border-t-2 border-emerald-600 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
+          {/* Touch-friendly seekbar */}
+          <div className="px-3 pt-2.5">
             <input
               ref={seekBarRef}
               type="range"
@@ -1054,8 +1064,8 @@ export default function Home() {
               onMouseUp={() => { isSeekingRef.current = false; }}
               onTouchStart={() => { isSeekingRef.current = true; }}
               onTouchEnd={() => { isSeekingRef.current = false; }}
-              className="w-full h-2 accent-emerald-600 cursor-pointer"
-              style={{ WebkitAppearance: 'none', appearance: 'none', background: `linear-gradient(to right, #059669 ${progressPct}%, #d1fae5 ${progressPct}%)`, borderRadius: '4px' }}
+              className="w-full h-2.5 cursor-pointer"
+              style={{ WebkitAppearance: 'none', appearance: 'none', background: `linear-gradient(to right, #047857 ${progressPct}%, #a7f3d0 ${progressPct}%)`, borderRadius: '6px' }}
             />
           </div>
           <div className="max-w-4xl mx-auto px-4 py-3">
