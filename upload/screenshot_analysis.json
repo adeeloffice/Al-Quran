@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the image provided, here is the extracted information:\n\n*   **Ruku Number:** 1 (indicated by the circled number on the left)\n*   **Surah Name:** Surah Al-Mujadila (سورة المجادلة)\n*   **Ayah Range:** Ayah 1 (بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ)\n*   **Hizb Number:** Not explicitly visible in this specific crop, but this marks the beginning of **Hizb 57**.\n*   **Other Metadata:** The text shown is the Basmalah (\"In the name of Allah, the Most Gracious, the Most Merciful\"), which serves as the opening of Surah Al-Mujadila.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1786392653,
+  "id": "202608110410510a933be3c06c4cb8",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608110410510a933be3c06c4cb8",
+  "usage": {
+    "completion_tokens": 172,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 97,
+    "prompt_tokens_details": {
+      "cached_tokens": 7
+    },
+    "total_tokens": 269
+  }
+}
