@@ -64,15 +64,29 @@ export const surahs: Surah[] = [
   },
   {
     id: 5, number: "005", nameArabic: "المائدة", nameUrdu: "المائدہ", nameEnglish: "Al-Maaidah", ayahCount: 120, type: "medinan",
-    audio: [{ title: "Al-Maaidah", url: `${BASE_URL}005-AL-MAIDAH.mp3` }]
+    audio: [
+      { title: "Al-Maaidah (1-43)", url: `${BASE_URL}005-AL-MA'IDAH [001 TO 043].mp3` },
+      { title: "Al-Maaidah (44-86)", url: `${BASE_URL}005-AL-MA'IDAH [044 TO 086].mp3` },
+      { title: "Al-Maaidah (87-End)", url: `${BASE_URL}005-AL-MA'IDAH [087 TO End].mp3` },
+    ]
   },
   {
     id: 6, number: "006", nameArabic: "الأنعام", nameUrdu: "الانعام", nameEnglish: "Al-An'aam", ayahCount: 165, type: "meccan",
-    audio: [{ title: "Al-An'aam", url: `${BASE_URL}006-AL-AN'AAM.mp3` }]
+    audio: [
+      { title: "Al-An'aam (1-49)", url: `${BASE_URL}006-AL-AN'AAM [001 TO 049].mp3` },
+      { title: "Al-An'aam (50-90)", url: `${BASE_URL}006-AL-AN'AAM [050 TO 090].mp3` },
+      { title: "Al-An'aam (91-129)", url: `${BASE_URL}006-AL-AN'AAM [091 TO 129].mp3` },
+      { title: "Al-An'aam (130-End)", url: `${BASE_URL}006-AL-AN'AAM [130 TO End].mp3` },
+    ]
   },
   {
     id: 7, number: "007", nameArabic: "الأعراف", nameUrdu: "الاعراف", nameEnglish: "Al-A'raaf", ayahCount: 206, type: "meccan",
-    audio: [{ title: "Al-A'raaf", url: `${BASE_URL}007-AL-A'RAAF.mp3` }]
+    audio: [
+      { title: "Al-A'raaf (1-58)", url: `${BASE_URL}007-AL-A'RAAF [001 TO 058].mp3` },
+      { title: "Al-A'raaf (59-129)", url: `${BASE_URL}007-AL-A'RAAF [059 TO 129].mp3` },
+      { title: "Al-A'raaf (130-166)", url: `${BASE_URL}007-AL-A'RAAF [130 TO 166].mp3` },
+      { title: "Al-A'raaf (167-End)", url: `${BASE_URL}007-AL-A'RAAF [167 TO End].mp3` },
+    ]
   },
   {
     id: 8, number: "008", nameArabic: "الأنفال", nameUrdu: "الانفال", nameEnglish: "Al-Anfaal", ayahCount: 75, type: "medinan",
@@ -103,7 +117,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 13, number: "013", nameArabic: "الرعد", nameUrdu: "الرعد", nameEnglish: "Ar-Ra'd", ayahCount: 43, type: "medinan",
-    audio: [{ title: "Ar-Ra'd", url: `${BASE_URL}013-AR-RA'D.mp3` }]
+    audio: [{ title: "Ar-Ra'd", url: `${BASE_URL}013-AR-RA'AD.mp3` }]
   },
   {
     id: 14, number: "014", nameArabic: "إبراهيم", nameUrdu: "ابراہیم", nameEnglish: "Ibraheem", ayahCount: 52, type: "meccan",
@@ -149,7 +163,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 23, number: "023", nameArabic: "المؤمنون", nameUrdu: "المؤمنون", nameEnglish: "Al-Mominoon", ayahCount: 118, type: "meccan",
-    audio: [{ title: "Al-Mominoon", url: `${BASE_URL}023-AL-MOMINOON.mp3` }]
+    audio: [{ title: "Al-Mominoon", url: `${BASE_URL}023-AL-MO'MINOON.mp3` }]
   },
   {
     id: 24, number: "024", nameArabic: "النور", nameUrdu: "النور", nameEnglish: "An-Noor", ayahCount: 64, type: "medinan",
@@ -161,7 +175,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 26, number: "026", nameArabic: "الشعراء", nameUrdu: "الشعراء", nameEnglish: "Ash-Shu'araa", ayahCount: 227, type: "meccan",
-    audio: [{ title: "Ash-Shu'araa", url: `${BASE_URL}026-ASH-SHU'ARAA.mp3` }]
+    audio: [{ title: "Ash-Shu'araa", url: `${BASE_URL}026-AS-SHU'ARAA.mp3` }]
   },
   {
     id: 27, number: "027", nameArabic: "النمل", nameUrdu: "النمل", nameEnglish: "An-Naml", ayahCount: 93, type: "meccan",
@@ -217,7 +231,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 40, number: "040", nameArabic: "غافر", nameUrdu: "غافر", nameEnglish: "Al-Momin", ayahCount: 85, type: "meccan",
-    audio: [{ title: "Al-Momin", url: `${BASE_URL}040-AL-MOMIN.mp3` }]
+    audio: [{ title: "Al-Momin", url: `${BASE_URL}040-AL-MO'MIN.mp3` }]
   },
   {
     id: 41, number: "041", nameArabic: "فصلت", nameUrdu: "فصلت", nameEnglish: "Haa Meem As-Sajdah", ayahCount: 54, type: "meccan",
@@ -249,7 +263,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 48, number: "048", nameArabic: "الفتح", nameUrdu: "الفتح", nameEnglish: "Al-Fatah", ayahCount: 29, type: "medinan",
-    audio: [{ title: "Al-Fatah", url: `${BASE_URL}048-AL-FATAH.mp3` }]
+    audio: [{ title: "Al-Fatah", url: `${BASE_URL}048-AL-FAT'H.mp3` }]
   },
   {
     id: 49, number: "049", nameArabic: "الحجرات", nameUrdu: "الحجرات", nameEnglish: "Al-Hujuraat", ayahCount: 18, type: "medinan",
@@ -337,7 +351,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 70, number: "070", nameArabic: "المعارج", nameUrdu: "المعارج", nameEnglish: "Al-Ma'aarij", ayahCount: 44, type: "meccan",
-    audio: [{ title: "Al-Ma'aarij", url: `${BASE_URL}070-AL-MA'AARIJ.mp3` }]
+    audio: [{ title: "Al-Ma'aarij", url: `${BASE_URL}070-AL-MA'ARIJ.mp3` }]
   },
   {
     id: 71, number: "071", nameArabic: "نوح", nameUrdu: "نوح", nameEnglish: "Nooh", ayahCount: 28, type: "meccan",
@@ -461,7 +475,7 @@ export const surahs: Surah[] = [
   },
   {
     id: 101, number: "101", nameArabic: "القارعة", nameUrdu: "القارعہ", nameEnglish: "Al-Qaari'ah", ayahCount: 11, type: "meccan",
-    audio: [{ title: "Al-Qaari'ah", url: `${BASE_URL}101-AL-QAARI'AH.mp3` }]
+    audio: [{ title: "Al-Qaari'ah", url: `${BASE_URL}101-AL-QAAR'IAH.mp3` }]
   },
   {
     id: 102, number: "102", nameArabic: "التكاثر", nameUrdu: "التکاثر", nameEnglish: "At-Takaathur", ayahCount: 8, type: "meccan",
