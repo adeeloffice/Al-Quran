@@ -613,7 +613,7 @@ export default function Home() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="flex flex-wrap gap-2 mb-4 sm:mb-6 -mx-1 px-1">
           {tabs.map((tab) => (
             <Button
               key={tab.key}
@@ -888,8 +888,8 @@ export default function Home() {
                 <div className="flex flex-col items-center">
                   <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-emerald-200 relative bg-gradient-to-b from-emerald-50 to-white mb-3">
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-bold text-emerald-600">N</div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ transform: `translate(-50%, -50%) rotate(${qiblaAngle}deg)` }}>
-                      <div className="w-1 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full -translate-y-1/2 mx-auto relative">
+                    <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) rotate(${qiblaAngle}deg)`, transformOrigin: 'center center' }}>
+                      <div className="w-1 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full relative">
                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-amber-500" />
                       </div>
                     </div>
