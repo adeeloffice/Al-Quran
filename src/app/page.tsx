@@ -120,13 +120,14 @@ export default function Home() {
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState("");
   const [selectedCity, setSelectedCity] = useState("karachi");
-  const [useGeo, setUseGeo] = useState(false);
+  const [useGeo, setUseGeo] = useState(true);
   const [qiblaAngle, setQiblaAngle] = useState<number | null>(null);
 
   // Quran reading state
   const [selectedSurahForReading, setSelectedSurahForReading] = useState<number>(1);
   const [quranData, setQuranData] = useState<QuranSurah | null>(null);
   const [quranLoading, setQuranLoading] = useState(false);
+  const [quranError, setQuranError] = useState("");
 
   const filteredSurahs = useMemo(
     () =>
@@ -411,12 +412,20 @@ export default function Home() {
   useEffect(() => {
     if (activeTab !== "quran" || quranLoading) return;
     setQuranLoading(true);
+    setQuranError("");
     fetch(`/api/quran?surah=${selectedSurahForReading}`)
       .then((r) => r.json())
       .then((data) => {
-        if (!data.error) setQuranData(data);
+        if (data.error) {
+          setQuranError(data.error);
+          setQuranData(null);
+        } else {
+          setQuranData(data);
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        setQuranError("Failed to load. Check your internet connection.");
+      })
       .finally(() => setQuranLoading(false));
   }, [activeTab, selectedSurahForReading, quranLoading]);
 
@@ -581,6 +590,15 @@ export default function Home() {
               <div className="flex flex-col items-center py-12 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin mb-2 text-emerald-600" />
                 <p className="text-sm">Loading Surah...</p>
+              </div>
+            )}
+
+            {quranError && !quranLoading && (
+              <div className="text-center py-12">
+                <p className="text-sm text-red-500 mb-3">{quranError}</p>
+                <Button onClick={() => { setQuranLoading(false); }} size="sm" className="bg-emerald-700 hover:bg-emerald-800">
+                  Try Again
+                </Button>
               </div>
             )}
 
