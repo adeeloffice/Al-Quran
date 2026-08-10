@@ -841,7 +841,8 @@ export default function Home() {
                     <div className="min-w-0">
                       <p className="text-xl sm:text-2xl text-emerald-800 font-medium" dir="rtl">{name.arabic}</p>
                       <p className="font-semibold text-sm text-foreground mt-1">{name.transliteration}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{name.meaning}</p>
+                      <p className="text-xs text-muted-foreground" dir="rtl" lang="ur" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}>{name.meaningUrdu}</p>
+                      <p className="text-xs text-muted-foreground/70">{name.meaning}</p>
                     </div>
                   </div>
                 </div>
@@ -1001,10 +1002,10 @@ export default function Home() {
                   <FastForward className="w-4 h-4" />
                 </Button>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground tabular-nums">{formatTime(currentTime)}/{formatTime(duration)}</span>
+              </div>
               <div className="hidden sm:flex items-center gap-3">
-                <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
-                <span className="text-xs text-muted-foreground">/</span>
-                <span className="text-xs text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
                 <div className="flex items-center gap-1.5">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={toggleMute}>
                     {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
