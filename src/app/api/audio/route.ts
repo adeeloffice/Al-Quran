@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
     const decodedUrl = decodeURIComponent(url);
     const parsed = new URL(decodedUrl);
 
-    // Only allow specific domains
     if (
       !parsed.hostname.endsWith("quranurdu.com") &&
-      !parsed.hostname.endsWith("aladhan.com")
+      !parsed.hostname.endsWith("aladhan.com") &&
+      !parsed.hostname.endsWith("alquran.cloud")
     ) {
       return NextResponse.json({ error: "Domain not allowed" }, { status: 403 });
     }
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       headers["Range"] = range;
     }
 
-    const response = await fetch(decodedUrl, { headers });
+    const response = await fetch(decodedUrl, { headers, cache: "no-store" });
 
     if (!response.ok) {
       return NextResponse.json(
