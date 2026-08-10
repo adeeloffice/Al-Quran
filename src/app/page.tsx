@@ -776,8 +776,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="p-4 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                  {/* Bismillah at top (not as ayah) for all surahs except 9 */}
-                  {quranData.surah !== 9 && (
+                  {/* Bismillah at top (not as ayah) for surahs other than 1 and 9 */}
+                  {quranData.surah !== 1 && quranData.surah !== 9 && (
                     <p className="text-center text-2xl text-emerald-800 font-medium pb-6 mb-6 border-b border-emerald-100" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
                   )}
                   <div className="space-y-6">

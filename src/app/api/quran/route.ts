@@ -24,19 +24,31 @@ export async function GET(request: NextRequest) {
     const arabicData = await arabicRes.json();
     const urduData = await urduRes.json();
 
-    const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
-    const BISMILLAH_ALT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+    // Arabic diacritical marks (tashkeel) Unicode ranges
+    const TASHKEEL_RE = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/g;
+
+    // Strip tashkeel for reliable comparison (diacritical mark order varies between sources)
+    const stripTashkeel = (s: string) => s.replace(TASHKEEL_RE, "");
+    const BISMILLAH_BASE = stripTashkeel("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ");
 
     const ayahs = arabicData.data.ayahs.map((a: any, i: number) => {
-      let text = a.text;
+      let text = a.text.replace(/^\ufeff/, "");
       // For surahs other than 1 and 9, ayah 1 contains Bismillah merged with the first real ayah.
       // Strip the Bismillah portion so only the actual first ayah text remains.
       if (a.numberInSurah === 1 && surah !== 1 && surah !== 9) {
-        // Try both Uthmani variants
-        if (text.startsWith(BISMILLAH)) {
-          text = text.slice(BISMILLAH.length).trim();
-        } else if (text.startsWith(BISMILLAH_ALT)) {
-          text = text.slice(BISMILLAH_ALT.length).trim();
+        const stripped = stripTashkeel(text);
+        if (stripped.startsWith(BISMILLAH_BASE)) {
+          // Find how many original characters the Bismillah spans
+          let baseIdx = 0;
+          let origIdx = 0;
+          while (baseIdx < BISMILLAH_BASE.length && origIdx < text.length) {
+            if (!TASHKEEL_RE.test(text[origIdx])) {
+              baseIdx++;
+            }
+            TASHKEEL_RE.lastIndex = 0; // reset regex state
+            origIdx++;
+          }
+          text = text.slice(origIdx).trim();
         }
       }
       return {
