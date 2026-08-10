@@ -735,14 +735,11 @@ export default function Home() {
             )}
 
             {quranData && !quranLoading && (
-              <div className="bg-[#FFFDF5] rounded-xl border border-amber-200/60 overflow-hidden shadow-sm">
-                {/* Surah Header */}
+              <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <h3 className="font-bold text-white text-lg" dir="rtl">{quranData.nameArabic}</h3>
-                      <p className="text-emerald-200 text-xs">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
-                    </div>
+                  <div>
+                    <h3 className="font-bold text-white text-lg" dir="rtl">{quranData.nameArabic}</h3>
+                    <p className="text-emerald-200 text-xs">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
                   </div>
                   <div className="flex gap-1">
                     {selectedSurahForReading > 1 && (
@@ -757,29 +754,18 @@ export default function Home() {
                     )}
                   </div>
                 </div>
-
-                {/* Bismillah */}
-                {quranData.surah !== 9 && quranData.surah !== 1 && (
-                  <div className="text-center py-4 border-b border-amber-200/40">
-                    <p className="text-2xl text-emerald-900 font-medium" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+                <div className="p-4 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                  {quranData.surah !== 9 && quranData.surah !== 1 && (
+                    <p className="text-center text-2xl text-emerald-800 font-medium pb-6 mb-6 border-b border-emerald-100" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+                  )}
+                  <div className="space-y-6">
+                    {quranData.ayahs.map((ayah) => (
+                      <div key={ayah.number} className="flex gap-3">
+                        <span className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700 text-xs font-bold mt-1">{ayah.numberInSurah}</span>
+                        <p className="text-xl sm:text-2xl text-gray-900 leading-[2.5] font-medium flex-1" dir="rtl" lang="ar">{ayah.arabic}</p>
+                      </div>
+                    ))}
                   </div>
-                )}
-
-                {/* Ayahs - Traditional Mushaf Style */}
-                <div className="p-4 sm:p-6 space-y-1 max-h-[65vh] overflow-y-auto custom-scrollbar" style={{ lineHeight: "2.2" }}>
-                  {quranData.ayahs.map((ayah) => (
-                    <div key={ayah.number} dir="rtl" className="group">
-                      <span className="inline">
-                        <span className="text-xl sm:text-2xl text-gray-900 font-medium" lang="ar">{ayah.arabic}</span>
-                        <span className="inline-flex items-center justify-center w-7 h-7 mx-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold align-middle">{ayah.numberInSurah}</span>
-                      </span>
-                      {ayah.urdu && (
-                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mt-0.5" lang="ur" style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}>
-                          {ayah.urdu}
-                        </p>
-                      )}
-                    </div>
-                  ))}
                 </div>
               </div>
             )}
