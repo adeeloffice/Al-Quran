@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const ALLOWED_DOMAINS = [
+  "quranurdu.com",
+  "aladhan.com",
+  "api.aladhan.com",
+  "alquran.cloud",
+];
+
+function isDomainAllowed(hostname: string): boolean {
+  return ALLOWED_DOMAINS.some((d) => hostname === d || hostname.endsWith("." + d));
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
 
@@ -11,64 +22,76 @@ export async function GET(request: NextRequest) {
     const decodedUrl = decodeURIComponent(url);
     const parsed = new URL(decodedUrl);
 
-    if (
-      !parsed.hostname.endsWith("quranurdu.com") &&
-      !parsed.hostname.endsWith("aladhan.com") &&
-      !parsed.hostname.endsWith("alquran.cloud")
-    ) {
+    if (!isDomainAllowed(parsed.hostname)) {
       return NextResponse.json({ error: "Domain not allowed" }, { status: 403 });
     }
 
     const range = request.headers.get("range");
-    const headers: HeadersInit = {
+    const fetchHeaders: HeadersInit = {
       "User-Agent": "Mozilla/5.0",
     };
 
     if (range) {
-      headers["Range"] = range;
+      fetchHeaders["Range"] = range;
     }
 
-    const response = await fetch(decodedUrl, { headers, cache: "no-store" });
+    const response = await fetch(decodedUrl, { headers: fetchHeaders, cache: "no-store" });
 
-    if (!response.ok) {
+    // If Range request failed (416 or upstream doesn't support it),
+    // retry without Range to get full content
+    if (range && (response.status === 416 || response.status === 200)) {
+      // If upstream returned 200 for a Range request, it ignored the Range header.
+      // The browser can handle full-content responses for seeks, so pass it through.
+      // If 416, retry without Range.
+      if (response.status === 416) {
+        response.body?.cancel();
+        const fallback = await fetch(decodedUrl, {
+          headers: { "User-Agent": "Mozilla/5.0" },
+          cache: "no-store",
+        });
+        if (fallback.ok) {
+          return buildAudioResponse(fallback, false);
+        }
+        return NextResponse.json({ error: "Upstream error" }, { status: 502 });
+      }
+    }
+
+    if (!response.ok && response.status !== 206) {
       return NextResponse.json(
         { error: `Upstream error: ${response.status}` },
         { status: response.status }
       );
     }
 
-    const contentType = response.headers.get("content-type") || "audio/mpeg";
-    const contentLength = response.headers.get("content-length");
-    const contentRange = response.headers.get("content-range");
-    const acceptRanges = response.headers.get("accept-ranges");
-
-    const responseHeaders: Record<string, string> = {
-      "Content-Type": contentType,
-      "Cache-Control": "public, max-age=86400",
-    };
-
-    if (contentLength) responseHeaders["Content-Length"] = contentLength;
-    if (contentRange) responseHeaders["Content-Range"] = contentRange;
-    if (acceptRanges) responseHeaders["Accept-Ranges"] = acceptRanges;
-
-    if (range && response.status === 206) {
-      return new NextResponse(response.body, {
-        status: 206,
-        headers: responseHeaders,
-      });
-    }
-
-    return new NextResponse(response.body, {
-      status: 200,
-      headers: responseHeaders,
-    });
+    return buildAudioResponse(response, response.status === 206);
   } catch (error) {
     console.error("Audio proxy error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch audio" },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: "Failed to fetch audio" }, { status: 502 });
   }
+}
+
+function buildAudioResponse(
+  response: globalThis.Response,
+  isPartial: boolean
+) {
+  const contentType = response.headers.get("content-type") || "audio/mpeg";
+  const contentLength = response.headers.get("content-length");
+  const contentRange = response.headers.get("content-range");
+
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": contentType,
+    "Cache-Control": "public, max-age=86400",
+    // Always advertise Accept-Ranges so the browser knows seeking is possible
+    "Accept-Ranges": "bytes",
+  };
+
+  if (contentLength) responseHeaders["Content-Length"] = contentLength;
+  if (contentRange) responseHeaders["Content-Range"] = contentRange;
+
+  return new NextResponse(response.body, {
+    status: isPartial ? 206 : 200,
+    headers: responseHeaders,
+  });
 }
 
 export async function OPTIONS() {

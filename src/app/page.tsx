@@ -221,8 +221,9 @@ export default function Home() {
   const seekTo = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressRef.current || !audioRef.current || !duration) return;
     const rect = progressRef.current.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const newTime = pct * duration;
+    isLoadingRef.current = true;
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   }, [duration]);
@@ -291,17 +292,41 @@ export default function Home() {
       setIsPlaying(false);
       playNext();
     };
+    const onError = () => {
+      // Silently recover from seek/network errors — the browser usually
+      // fires a second canplaythrough after the error so playback resumes.
+      console.warn("Audio element error (likely seek-related), ignoring.");
+    };
+    const onWaiting = () => {
+      // Browser is buffering (happens after seek) — keep isPlaying true
+    };
+    const onCanPlayThrough = () => {
+      // Auto-resume playback after seek buffer is ready
+      if (isLoadingRef.current) {
+        isLoadingRef.current = false;
+        audio.play().then(() => setIsPlaying(true)).catch(() => {
+          setIsPlaying(false);
+          isLoadingRef.current = false;
+        });
+      }
+    };
 
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onDur);
     audio.addEventListener("durationchange", onDur);
     audio.addEventListener("ended", onEnd);
+    audio.addEventListener("error", onError, true); // capture phase
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("canplaythrough", onCanPlayThrough);
 
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onDur);
       audio.removeEventListener("durationchange", onDur);
       audio.removeEventListener("ended", onEnd);
+      audio.removeEventListener("error", onError, true);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("canplaythrough", onCanPlayThrough);
     };
   }, [playNext]);
 

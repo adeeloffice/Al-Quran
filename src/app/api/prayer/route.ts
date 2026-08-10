@@ -64,11 +64,26 @@ export async function GET(request: NextRequest) {
   const mm = (today.getMonth() + 1).toString().padStart(2, "0");
   const yyyy = today.getFullYear();
 
+  const apiUrl = `https://api.aladhan.com/v1/timings/${dd}-${mm}-${yyyy}?latitude=${latitude}&longitude=${longitude}&method=1`;
+
   try {
-    const res = await fetch(
-      `https://api.aladhan.com/v1/timings/${dd}-${mm}-${yyyy}?latitude=${latitude}&longitude=${longitude}&method=1`,
-      { next: { revalidate: 300 } }
-    );
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const res = await fetch(apiUrl, {
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      console.error(`Aladhan API returned ${res.status}`);
+      return NextResponse.json(
+        { error: `Prayer API returned status ${res.status}. Please try again.` },
+        { status: 502 }
+      );
+    }
+
     const data = await res.json();
 
     if (data.code === 200 && data.data) {
@@ -81,9 +96,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: "Failed to fetch prayer times" }, { status: 502 });
+    return NextResponse.json({ error: "Invalid response from prayer API" }, { status: 502 });
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.error("Prayer API timeout");
+      return NextResponse.json(
+        { error: "Prayer API timed out. Please check your internet connection and try again." },
+        { status: 504 }
+      );
+    }
     console.error("Prayer API error:", error);
-    return NextResponse.json({ error: "Failed to fetch prayer times" }, { status: 502 });
+    return NextResponse.json(
+      { error: "Failed to fetch prayer times. Please check your internet connection." },
+      { status: 502 }
+    );
   }
 }
