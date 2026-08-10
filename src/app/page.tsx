@@ -126,6 +126,8 @@ export default function Home() {
   const [selectedCity, setSelectedCity] = useState("karachi");
   const [useGeo, setUseGeo] = useState(true);
   const [qiblaAngle, setQiblaAngle] = useState<number | null>(null);
+  const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
+  const [hasGyro, setHasGyro] = useState<boolean | null>(null);
 
   // Quran reading state
   const [selectedSurahForReading, setSelectedSurahForReading] = useState<number>(1);
@@ -466,6 +468,25 @@ export default function Home() {
       setPrayerLoading(false);
     }
   }, [selectedCity, useGeo]);
+
+  // Device orientation for Qibla compass
+  useEffect(() => {
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      if (e.alpha !== null) {
+        setDeviceHeading(e.alpha);
+        setHasGyro(true);
+      }
+    };
+    window.addEventListener('deviceorientation', onOrientation);
+    // Check after 1s if we got any reading
+    const timer = setTimeout(() => {
+      if (hasGyro === null) setHasGyro(false);
+    }, 1000);
+    return () => {
+      window.removeEventListener('deviceorientation', onOrientation);
+      clearTimeout(timer);
+    };
+  }, [hasGyro]);
 
   const calcQibla = (lat: number, lng: number, _locName?: string) => {
     const kaabaLat = (21.4225 * Math.PI) / 180;
@@ -889,17 +910,25 @@ export default function Home() {
               {qiblaAngle !== null ? (
                 <div className="flex flex-col items-center">
                   <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-emerald-200 relative bg-gradient-to-b from-emerald-50 to-white mb-3">
+                    {/* Compass letters */}
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-bold text-emerald-600">N</div>
-                    <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) rotate(${qiblaAngle}deg)`, transformOrigin: 'center center' }}>
-                      <div className="w-1 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full relative">
-                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-amber-500" />
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-400">S</div>
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">W</div>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">E</div>
+                    {/* Needle: rotates opposite to device heading so it always points to Qibla */}
+                    <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) rotate(${deviceHeading !== null ? qiblaAngle - deviceHeading : qiblaAngle}deg)`, transformOrigin: 'center center', transition: 'transform 0.3s ease-out' }}>
+                      <div className="w-1.5 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full relative">
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-r-[7px] border-b-[11px] border-l-transparent border-r-transparent border-b-amber-500" />
                       </div>
                     </div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-700" />
                   </div>
                   <p className="text-sm text-center text-muted-foreground">
-                    Qibla: <span className="font-semibold text-emerald-700">{Math.round(qiblaAngle)}deg</span> from North
+                    Qibla: <span className="font-semibold text-emerald-700">{Math.round(qiblaAngle)}°</span> from North
                   </p>
+                  {hasGyro === false && (
+                    <p className="text-xs text-center text-amber-600 mt-1">Hold phone flat and rotate to find Qibla</p>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
