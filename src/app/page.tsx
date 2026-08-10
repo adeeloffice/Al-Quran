@@ -433,7 +433,7 @@ export default function Home() {
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 sm:py-6 pb-44">
-        {/* Search */
+        {/* Search */}
         {(activeTab === "surahs" || activeTab === "intro" || activeTab === "asmaulhusna") && (
           <div className="relative mb-4 sm:mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -446,7 +446,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tabs */
+        {/* Tabs */}
         <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1">
           {tabs.map((tab) => (
             <Button
@@ -536,7 +536,7 @@ export default function Home() {
               </select>
             </div>
 
-            {/* Quick Para Navigation */
+            {/* Quick Para Navigation */}
             <div className="mb-4">
               <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Jump to Para</p>
               <div className="flex flex-wrap gap-1.5">
