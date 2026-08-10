@@ -31,7 +31,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#065f46" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#022c22" media="(prefers-color-scheme: dark)" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" rel="stylesheet" />
+ <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className={`${geistSans.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>

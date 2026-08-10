@@ -55,6 +55,11 @@ function proxyUrl(originalUrl: string): string {
   return `/api/audio?url=${encodeURIComponent(originalUrl)}`;
 }
 
+function toArabicNumeral(num: number): string {
+  const arabicDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+  return num.toString().split("").map(d => arabicDigits[parseInt(d)]).join("");
+}
+
 type TabType = "surahs" | "asmaulhusna" | "prayer" | "quran";
 
 interface PrayerTime {
@@ -789,7 +794,7 @@ export default function Home() {
               <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 px-4 py-3 flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-white text-lg" dir="rtl">{quranData.nameArabic}</h3>
+                    <h3 className="font-bold text-white text-lg" dir="rtl" style={{ fontFamily: "'Amiri Quran', serif" }}>{quranData.nameArabic}</h3>
                     <p className="text-emerald-200 text-xs">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
                   </div>
                   <div className="flex gap-1">
@@ -805,17 +810,22 @@ export default function Home() {
                     )}
                   </div>
                 </div>
-                <div className="p-4 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <div className="p-3 sm:p-6 max-h-[70vh] overflow-y-auto custom-scrollbar bg-[#faf8f0]">
                   {/* Bismillah at top (not as ayah) for surahs other than 1 and 9 */}
                   {quranData.surah !== 1 && quranData.surah !== 9 && (
-                    <p className="text-center text-2xl text-emerald-800 font-medium pb-6 mb-6 border-b border-emerald-100" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+                    <p className="text-center text-2xl sm:text-3xl text-gray-900 font-medium pb-4 mb-2" dir="rtl" lang="ar" style={{ fontFamily: "'Amiri Quran', serif" }}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
                   )}
-                  <div className="space-y-6">
+                  {/* Mushaf-style: continuous justified Arabic text with inline ayah numbers */}
+                  <div dir="rtl" lang="ar" className="text-2xl sm:text-[28px] md:text-3xl text-gray-900 leading-[2.8] sm:leading-[3] text-justify font-normal" style={{ fontFamily: "'Amiri Quran', 'Amiri', serif" }}>
                     {quranData.ayahs.map((ayah) => (
-                      <div key={ayah.number} className="flex gap-3">
-                        <span className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700 text-xs font-bold mt-1">{ayah.numberInSurah}</span>
-                        <p className="text-xl sm:text-2xl text-gray-900 leading-[2.5] font-medium flex-1" dir="rtl" lang="ar">{ayah.arabic}</p>
-                      </div>
+                      <span key={ayah.number}>
+                        {ayah.arabic}
+                        <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
+                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] text-gray-500">﴿</span>
+                          <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
+                          <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] text-gray-500">﴾</span>
+                        </span>
+                      </span>
                     ))}
                   </div>
                 </div>
