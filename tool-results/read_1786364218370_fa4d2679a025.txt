@@ -1,0 +1,532 @@
+     1→export interface SurahAudio {
+     2→  title: string;
+     3→  url: string;
+     4→}
+     5→
+     6→export interface Surah {
+     7→  id: number;
+     8→  number: string;
+     9→  nameArabic: string;
+    10→  nameUrdu: string;
+    11→  nameEnglish: string;
+    12→  ayahCount: number;
+    13→  type: "meccan" | "medinan";
+    14→  audio: SurahAudio[];
+    15→}
+    16→
+    17→const BASE_URL = "http://download1.quranurdu.com/Bayan ul Quran in Urdu Dr Asrar Ahmed/";
+    18→
+    19→export const introductions: SurahAudio[] = [
+    20→  { title: "Introduction - Part 1", url: `${BASE_URL}000-Introduction-01.mp3` },
+    21→  { title: "Introduction - Part 2", url: `${BASE_URL}000-Introduction-02.mp3` },
+    22→  { title: "Introduction - Part 3", url: `${BASE_URL}000-Introduction-03.mp3` },
+    23→  { title: "Introduction - Part 4", url: `${BASE_URL}000-Introduction-04.mp3` },
+    24→];
+    25→
+    26→export const surahs: Surah[] = [
+    27→  {
+    28→    id: 1, number: "001", nameArabic: "الفاتحة", nameUrdu: "الفاتحہ", nameEnglish: "Al-Faatihah", ayahCount: 7, type: "meccan",
+    29→    audio: [{ title: "Al-Faatihah", url: `${BASE_URL}001-AL-FAATIHAH.mp3` }]
+    30→  },
+    31→  {
+    32→    id: 2, number: "002", nameArabic: "البقرة", nameUrdu: "البقرہ", nameEnglish: "Al-Baqarah", ayahCount: 286, type: "medinan",
+    33→    audio: [
+    34→      { title: "Al-Baqarah (1-29)", url: `${BASE_URL}002-AL-BAQARAH (001 TO 029).mp3` },
+    35→      { title: "Al-Baqarah (30-46)", url: `${BASE_URL}002-AL-BAQARAH (030 TO 046).mp3` },
+    36→      { title: "Al-Baqarah (47-74)", url: `${BASE_URL}002-AL-BAQARAH [047 TO 074].mp3` },
+    37→      { title: "Al-Baqarah (75-107)", url: `${BASE_URL}002-AL-BAQARAH [075 TO 107].mp3` },
+    38→      { title: "Al-Baqarah (108-141)", url: `${BASE_URL}002-AL-BAQARAH [108 TO 141].mp3` },
+    39→      { title: "Al-Baqarah (142-176)", url: `${BASE_URL}002-AL-BAQARAH [142 TO 176].mp3` },
+    40→      { title: "Al-Baqarah (177-196)", url: `${BASE_URL}002-AL-BAQARAH [177 TO 196].mp3` },
+    41→      { title: "Al-Baqarah (197-228)", url: `${BASE_URL}002-AL-BAQARAH [197 TO 228].mp3` },
+    42→      { title: "Al-Baqarah (229-253)", url: `${BASE_URL}002-AL-BAQARAH [229 TO 253].mp3` },
+    43→      { title: "Al-Baqarah (254-End)", url: `${BASE_URL}002-AL-BAQARAH [254 TO End].mp3` },
+    44→    ]
+    45→  },
+    46→  {
+    47→    id: 3, number: "003", nameArabic: "آل عمران", nameUrdu: "آل عمران", nameEnglish: "Aale-Imran", ayahCount: 200, type: "medinan",
+    48→    audio: [
+    49→      { title: "Aale-Imran (1-47)", url: `${BASE_URL}003-ALE-IMRAN [001 TO 047].mp3` },
+    50→      { title: "Aale-Imran (48-101)", url: `${BASE_URL}003-ALE-IMRAN [048 TO 101].mp3` },
+    51→      { title: "Aale-Imran (102-151)", url: `${BASE_URL}003-ALE-IMRAN [102 TO 151].mp3` },
+    52→      { title: "Aale-Imran (152-End)", url: `${BASE_URL}003-ALE-IMRAN [152 TO End].mp3` },
+    53→    ]
+    54→  },
+    55→  {
+    56→    id: 4, number: "004", nameArabic: "النساء", nameUrdu: "النساء", nameEnglish: "An-Nisaa", ayahCount: 176, type: "medinan",
+    57→    audio: [
+    58→      { title: "An-Nisaa (1-30)", url: `${BASE_URL}004-AN-NISAA [001 TO 030].mp3` },
+    59→      { title: "An-Nisaa (31-65)", url: `${BASE_URL}004-AN-NISAA [031 TO 065].mp3` },
+    60→      { title: "An-Nisaa (66-100)", url: `${BASE_URL}004-AN-NISAA [066 TO 100].mp3` },
+    61→      { title: "An-Nisaa (101-142)", url: `${BASE_URL}004-AN-NISAA [101 TO 142].mp3` },
+    62→      { title: "An-Nisaa (143-End)", url: `${BASE_URL}004-AN-NISAA [143 TO End].mp3` },
+    63→    ]
+    64→  },
+    65→  {
+    66→    id: 5, number: "005", nameArabic: "المائدة", nameUrdu: "المائدہ", nameEnglish: "Al-Maaidah", ayahCount: 120, type: "medinan",
+    67→    audio: [
+    68→      { title: "Al-Maaidah (1-43)", url: `${BASE_URL}005-AL-MA'IDAH [001 TO 043].mp3` },
+    69→      { title: "Al-Maaidah (44-86)", url: `${BASE_URL}005-AL-MA'IDAH [044 TO 086].mp3` },
+    70→      { title: "Al-Maaidah (87-End)", url: `${BASE_URL}005-AL-MA'IDAH [087 TO End].mp3` },
+    71→    ]
+    72→  },
+    73→  {
+    74→    id: 6, number: "006", nameArabic: "الأنعام", nameUrdu: "الانعام", nameEnglish: "Al-An'aam", ayahCount: 165, type: "meccan",
+    75→    audio: [
+    76→      { title: "Al-An'aam (1-49)", url: `${BASE_URL}006-AL-AN'AAM [001 TO 049].mp3` },
+    77→      { title: "Al-An'aam (50-90)", url: `${BASE_URL}006-AL-AN'AAM [050 TO 090].mp3` },
+    78→      { title: "Al-An'aam (91-129)", url: `${BASE_URL}006-AL-AN'AAM [091 TO 129].mp3` },
+    79→      { title: "Al-An'aam (130-End)", url: `${BASE_URL}006-AL-AN'AAM [130 TO End].mp3` },
+    80→    ]
+    81→  },
+    82→  {
+    83→    id: 7, number: "007", nameArabic: "الأعراف", nameUrdu: "الاعراف", nameEnglish: "Al-A'raaf", ayahCount: 206, type: "meccan",
+    84→    audio: [
+    85→      { title: "Al-A'raaf (1-58)", url: `${BASE_URL}007-AL-A'RAAF [001 TO 058].mp3` },
+    86→      { title: "Al-A'raaf (59-129)", url: `${BASE_URL}007-AL-A'RAAF [059 TO 129].mp3` },
+    87→      { title: "Al-A'raaf (130-166)", url: `${BASE_URL}007-AL-A'RAAF [130 TO 166].mp3` },
+    88→      { title: "Al-A'raaf (167-End)", url: `${BASE_URL}007-AL-A'RAAF [167 TO End].mp3` },
+    89→    ]
+    90→  },
+    91→  {
+    92→    id: 8, number: "008", nameArabic: "الأنفال", nameUrdu: "الانفال", nameEnglish: "Al-Anfaal", ayahCount: 75, type: "medinan",
+    93→    audio: [
+    94→      { title: "Al-Anfaal (1-40)", url: `${BASE_URL}008-AL-ANFAAL [001 TO 040].mp3` },
+    95→      { title: "Al-Anfaal (41-End)", url: `${BASE_URL}008-AL-ANFAAL [041 TO End].mp3` },
+    96→    ]
+    97→  },
+    98→  {
+    99→    id: 9, number: "009", nameArabic: "التوبة", nameUrdu: "التوبہ", nameEnglish: "At-Taubah", ayahCount: 129, type: "medinan",
+   100→    audio: [
+   101→      { title: "At-Taubah (1-34)", url: `${BASE_URL}009-AT-TAUBAH [001 TO 034].mp3` },
+   102→      { title: "At-Taubah (35-85)", url: `${BASE_URL}009-AT-TAUBAH [035 TO 085].mp3` },
+   103→      { title: "At-Taubah (86-End)", url: `${BASE_URL}009-AT-TAUBAH [086 TO End].mp3` },
+   104→    ]
+   105→  },
+   106→  {
+   107→    id: 10, number: "010", nameArabic: "يونس", nameUrdu: "یونس", nameEnglish: "Younus", ayahCount: 109, type: "meccan",
+   108→    audio: [{ title: "Younus", url: `${BASE_URL}010-YOUNUS.mp3` }]
+   109→  },
+   110→  {
+   111→    id: 11, number: "011", nameArabic: "هود", nameUrdu: "ہود", nameEnglish: "Hud", ayahCount: 123, type: "meccan",
+   112→    audio: [{ title: "Hud", url: `${BASE_URL}011-HUD.MP3` }]
+   113→  },
+   114→  {
+   115→    id: 12, number: "012", nameArabic: "يوسف", nameUrdu: "یوسف", nameEnglish: "Yousuf", ayahCount: 111, type: "meccan",
+   116→    audio: [{ title: "Yousuf", url: `${BASE_URL}012-YOUSUF.mp3` }]
+   117→  },
+   118→  {
+   119→    id: 13, number: "013", nameArabic: "الرعد", nameUrdu: "الرعد", nameEnglish: "Ar-Ra'd", ayahCount: 43, type: "medinan",
+   120→    audio: [{ title: "Ar-Ra'd", url: `${BASE_URL}013-AR-RA'AD.mp3` }]
+   121→  },
+   122→  {
+   123→    id: 14, number: "014", nameArabic: "إبراهيم", nameUrdu: "ابراہیم", nameEnglish: "Ibraheem", ayahCount: 52, type: "meccan",
+   124→    audio: [{ title: "Ibraheem", url: `${BASE_URL}014-IBRAHEEM.mp3` }]
+   125→  },
+   126→  {
+   127→    id: 15, number: "015", nameArabic: "الحجر", nameUrdu: "الحجر", nameEnglish: "Al-Hijr", ayahCount: 99, type: "meccan",
+   128→    audio: [{ title: "Al-Hijr", url: `${BASE_URL}015-AL-HIJR.mp3` }]
+   129→  },
+   130→  {
+   131→    id: 16, number: "016", nameArabic: "النحل", nameUrdu: "النحل", nameEnglish: "An-Nahl", ayahCount: 128, type: "meccan",
+   132→    audio: [
+   133→      { title: "An-Nahl (1-65)", url: `${BASE_URL}016-AN-NAHL [001 TO 065].mp3` },
+   134→      { title: "An-Nahl (66-End)", url: `${BASE_URL}016-AN-NAHL [066 TO End].mp3` },
+   135→    ]
+   136→  },
+   137→  {
+   138→    id: 17, number: "017", nameArabic: "الإسراء", nameUrdu: "بنی اسرائیل", nameEnglish: "Bani Israeel", ayahCount: 111, type: "meccan",
+   139→    audio: [
+   140→      { title: "Bani Israeel (1-35)", url: `${BASE_URL}017-BANI ISRAIL [001 TO 035].mp3` },
+   141→      { title: "Bani Israeel (36-End)", url: `${BASE_URL}017-BANI ISRAIL [036 TO End].mp3` },
+   142→    ]
+   143→  },
+   144→  {
+   145→    id: 18, number: "018", nameArabic: "الكهف", nameUrdu: "الکہف", nameEnglish: "Al-Kahaf", ayahCount: 110, type: "meccan",
+   146→    audio: [{ title: "Al-Kahaf", url: `${BASE_URL}018-AL-KAHEF.mp3` }]
+   147→  },
+   148→  {
+   149→    id: 19, number: "019", nameArabic: "مريم", nameUrdu: "مریم", nameEnglish: "Maryam", ayahCount: 98, type: "meccan",
+   150→    audio: [{ title: "Maryam", url: `${BASE_URL}019-MARYAM.mp3` }]
+   151→  },
+   152→  {
+   153→    id: 20, number: "020", nameArabic: "طه", nameUrdu: "طٰہٰ", nameEnglish: "Taa Haa", ayahCount: 135, type: "meccan",
+   154→    audio: [{ title: "Taa Haa", url: `${BASE_URL}020-TAA HAA.mp3` }]
+   155→  },
+   156→  {
+   157→    id: 21, number: "021", nameArabic: "الأنبياء", nameUrdu: "الانبیاء", nameEnglish: "Al-Ambia", ayahCount: 112, type: "meccan",
+   158→    audio: [{ title: "Al-Ambia", url: `${BASE_URL}021-AL-AMBIA.mp3` }]
+   159→  },
+   160→  {
+   161→    id: 22, number: "022", nameArabic: "الحج", nameUrdu: "الحج", nameEnglish: "Al-Hajj", ayahCount: 78, type: "medinan",
+   162→    audio: [{ title: "Al-Hajj", url: `${BASE_URL}022-AL-HAJJ.mp3` }]
+   163→  },
+   164→  {
+   165→    id: 23, number: "023", nameArabic: "المؤمنون", nameUrdu: "المؤمنون", nameEnglish: "Al-Mominoon", ayahCount: 118, type: "meccan",
+   166→    audio: [{ title: "Al-Mominoon", url: `${BASE_URL}023-AL-MO'MINOON.mp3` }]
+   167→  },
+   168→  {
+   169→    id: 24, number: "024", nameArabic: "النور", nameUrdu: "النور", nameEnglish: "An-Noor", ayahCount: 64, type: "medinan",
+   170→    audio: [{ title: "An-Noor", url: `${BASE_URL}024-AN-NOOR.mp3` }]
+   171→  },
+   172→  {
+   173→    id: 25, number: "025", nameArabic: "الفرقان", nameUrdu: "الفرقان", nameEnglish: "Al-Furqan", ayahCount: 77, type: "meccan",
+   174→    audio: [{ title: "Al-Furqan", url: `${BASE_URL}025-AL-FURQAN.mp3` }]
+   175→  },
+   176→  {
+   177→    id: 26, number: "026", nameArabic: "الشعراء", nameUrdu: "الشعراء", nameEnglish: "Ash-Shu'araa", ayahCount: 227, type: "meccan",
+   178→    audio: [{ title: "Ash-Shu'araa", url: `${BASE_URL}026-AS-SHU'ARAA.mp3` }]
+   179→  },
+   180→  {
+   181→    id: 27, number: "027", nameArabic: "النمل", nameUrdu: "النمل", nameEnglish: "An-Naml", ayahCount: 93, type: "meccan",
+   182→    audio: [{ title: "An-Naml", url: `${BASE_URL}027-AN-NAML.mp3` }]
+   183→  },
+   184→  {
+   185→    id: 28, number: "028", nameArabic: "القصص", nameUrdu: "القصص", nameEnglish: "Al-Qasas", ayahCount: 88, type: "meccan",
+   186→    audio: [{ title: "Al-Qasas", url: `${BASE_URL}028-AL-QASES.mp3` }]
+   187→  },
+   188→  {
+   189→    id: 29, number: "029", nameArabic: "العنكبوت", nameUrdu: "العنکبوت", nameEnglish: "Al-Ankaboot", ayahCount: 69, type: "meccan",
+   190→    audio: [{ title: "Al-Ankaboot", url: `${BASE_URL}029-AL-ANKABOOT.mp3` }]
+   191→  },
+   192→  {
+   193→    id: 30, number: "030", nameArabic: "الروم", nameUrdu: "الروم", nameEnglish: "Ar-Room", ayahCount: 60, type: "meccan",
+   194→    audio: [{ title: "Ar-Room", url: `${BASE_URL}030-AR-ROOM.mp3` }]
+   195→  },
+   196→  {
+   197→    id: 31, number: "031", nameArabic: "لقمان", nameUrdu: "لقمان", nameEnglish: "Luqman", ayahCount: 34, type: "meccan",
+   198→    audio: [{ title: "Luqman", url: `${BASE_URL}031-LUQMAN.mp3` }]
+   199→  },
+   200→  {
+   201→    id: 32, number: "032", nameArabic: "السجدة", nameUrdu: "السجدہ", nameEnglish: "As-Sajdah", ayahCount: 30, type: "meccan",
+   202→    audio: [{ title: "As-Sajdah", url: `${BASE_URL}032-AS-SAJDAH.mp3` }]
+   203→  },
+   204→  {
+   205→    id: 33, number: "033", nameArabic: "الأحزاب", nameUrdu: "الاحزاب", nameEnglish: "Al-Ahzaab", ayahCount: 73, type: "medinan",
+   206→    audio: [{ title: "Al-Ahzaab", url: `${BASE_URL}033-AL-AHZAB.mp3` }]
+   207→  },
+   208→  {
+   209→    id: 34, number: "034", nameArabic: "سبأ", nameUrdu: "سبا", nameEnglish: "Saba", ayahCount: 54, type: "meccan",
+   210→    audio: [{ title: "Saba", url: `${BASE_URL}034-SABA.MP3` }]
+   211→  },
+   212→  {
+   213→    id: 35, number: "035", nameArabic: "فاطر", nameUrdu: "فاطر", nameEnglish: "Faatir", ayahCount: 45, type: "meccan",
+   214→    audio: [{ title: "Faatir", url: `${BASE_URL}035-FAATIR.mp3` }]
+   215→  },
+   216→  {
+   217→    id: 36, number: "036", nameArabic: "يس", nameUrdu: "یٰسین", nameEnglish: "Yaa Seen", ayahCount: 83, type: "meccan",
+   218→    audio: [{ title: "Yaa Seen", url: `${BASE_URL}036-YAA SEEN.mp3` }]
+   219→  },
+   220→  {
+   221→    id: 37, number: "037", nameArabic: "الصافات", nameUrdu: "الصٰفٰت", nameEnglish: "As-Saffaat", ayahCount: 182, type: "meccan",
+   222→    audio: [{ title: "As-Saffaat", url: `${BASE_URL}037-AS-SAFFAAT.mp3` }]
+   223→  },
+   224→  {
+   225→    id: 38, number: "038", nameArabic: "ص", nameUrdu: "ص", nameEnglish: "Suad", ayahCount: 88, type: "meccan",
+   226→    audio: [{ title: "Suad", url: `${BASE_URL}038-SUAD.MP3` }]
+   227→  },
+   228→  {
+   229→    id: 39, number: "039", nameArabic: "الزمر", nameUrdu: "الزمر", nameEnglish: "Az-Zumar", ayahCount: 75, type: "meccan",
+   230→    audio: [{ title: "Az-Zumar", url: `${BASE_URL}039-AZ-ZUMAR.mp3` }]
+   231→  },
+   232→  {
+   233→    id: 40, number: "040", nameArabic: "غافر", nameUrdu: "غافر", nameEnglish: "Al-Momin", ayahCount: 85, type: "meccan",
+   234→    audio: [{ title: "Al-Momin", url: `${BASE_URL}040-AL-MO'MIN.mp3` }]
+   235→  },
+   236→  {
+   237→    id: 41, number: "041", nameArabic: "فصلت", nameUrdu: "فصلت", nameEnglish: "Haa Meem As-Sajdah", ayahCount: 54, type: "meccan",
+   238→    audio: [{ title: "Haa Meem As-Sajdah", url: `${BASE_URL}041-HAA MEEM AS-SAJDAH.mp3` }]
+   239→  },
+   240→  {
+   241→    id: 42, number: "042", nameArabic: "الشورى", nameUrdu: "الشورٰی", nameEnglish: "As-Shura", ayahCount: 53, type: "meccan",
+   242→    audio: [{ title: "As-Shura", url: `${BASE_URL}042-AS-SHURA.mp3` }]
+   243→  },
+   244→  {
+   245→    id: 43, number: "043", nameArabic: "الزخرف", nameUrdu: "الزخرف", nameEnglish: "Az-Zukhruf", ayahCount: 89, type: "meccan",
+   246→    audio: [{ title: "Az-Zukhruf", url: `${BASE_URL}043-AZ-ZUKHRUF.mp3` }]
+   247→  },
+   248→  {
+   249→    id: 44, number: "044", nameArabic: "الدخان", nameUrdu: "الدخان", nameEnglish: "Ad-Dukhan", ayahCount: 59, type: "meccan",
+   250→    audio: [{ title: "Ad-Dukhan", url: `${BASE_URL}044-AD-DUKHAN.mp3` }]
+   251→  },
+   252→  {
+   253→    id: 45, number: "045", nameArabic: "الجاثية", nameUrdu: "الجاثیہ", nameEnglish: "Al-Jathiyah", ayahCount: 37, type: "meccan",
+   254→    audio: [{ title: "Al-Jathiyah", url: `${BASE_URL}045-AL-JATHIA.mp3` }]
+   255→  },
+   256→  {
+   257→    id: 46, number: "046", nameArabic: "الأحقاف", nameUrdu: "الاحقاف", nameEnglish: "Al-Ahqaaf", ayahCount: 35, type: "meccan",
+   258→    audio: [{ title: "Al-Ahqaaf", url: `${BASE_URL}046-AL-AHQAAF.mp3` }]
+   259→  },
+   260→  {
+   261→    id: 47, number: "047", nameArabic: "محمد", nameUrdu: "محمد", nameEnglish: "Muhammad", ayahCount: 38, type: "medinan",
+   262→    audio: [{ title: "Muhammad", url: `${BASE_URL}047-MUHAMMAD.mp3` }]
+   263→  },
+   264→  {
+   265→    id: 48, number: "048", nameArabic: "الفتح", nameUrdu: "الفتح", nameEnglish: "Al-Fatah", ayahCount: 29, type: "medinan",
+   266→    audio: [{ title: "Al-Fatah", url: `${BASE_URL}048-AL-FAT'H.mp3` }]
+   267→  },
+   268→  {
+   269→    id: 49, number: "049", nameArabic: "الحجرات", nameUrdu: "الحجرات", nameEnglish: "Al-Hujuraat", ayahCount: 18, type: "medinan",
+   270→    audio: [{ title: "Al-Hujuraat", url: `${BASE_URL}049-AL-HUJURAAT.mp3` }]
+   271→  },
+   272→  {
+   273→    id: 50, number: "050", nameArabic: "ق", nameUrdu: "ق", nameEnglish: "Qaaf", ayahCount: 45, type: "meccan",
+   274→    audio: [{ title: "Qaaf", url: `${BASE_URL}050-QAAF.MP3` }]
+   275→  },
+   276→  {
+   277→    id: 51, number: "051", nameArabic: "الذاريات", nameUrdu: "الذاریات", nameEnglish: "Az-Zariyaat", ayahCount: 60, type: "meccan",
+   278→    audio: [{ title: "Az-Zariyaat", url: `${BASE_URL}051-AZ-ZARIYAAT.mp3` }]
+   279→  },
+   280→  {
+   281→    id: 52, number: "052", nameArabic: "الطور", nameUrdu: "الطور", nameEnglish: "At-Toor", ayahCount: 49, type: "meccan",
+   282→    audio: [{ title: "At-Toor", url: `${BASE_URL}052-AT-TOOR.mp3` }]
+   283→  },
+   284→  {
+   285→    id: 53, number: "053", nameArabic: "النجم", nameUrdu: "النجم", nameEnglish: "An-Najm", ayahCount: 62, type: "meccan",
+   286→    audio: [{ title: "An-Najm", url: `${BASE_URL}053-AN-NAJM.mp3` }]
+   287→  },
+   288→  {
+   289→    id: 54, number: "054", nameArabic: "القمر", nameUrdu: "القمر", nameEnglish: "Al-Qamar", ayahCount: 55, type: "meccan",
+   290→    audio: [{ title: "Al-Qamar", url: `${BASE_URL}054-AL-QAMAR.mp3` }]
+   291→  },
+   292→  {
+   293→    id: 55, number: "055", nameArabic: "الرحمن", nameUrdu: "الرحمٰن", nameEnglish: "Ar-Rahman", ayahCount: 78, type: "medinan",
+   294→    audio: [{ title: "Ar-Rahman", url: `${BASE_URL}055-AR-RAHMAN.mp3` }]
+   295→  },
+   296→  {
+   297→    id: 56, number: "056", nameArabic: "الواقعة", nameUrdu: "الواقعہ", nameEnglish: "Al-Waqi'ah", ayahCount: 96, type: "meccan",
+   298→    audio: [{ title: "Al-Waqi'ah", url: `${BASE_URL}056-AL-WAQI'AH.mp3` }]
+   299→  },
+   300→  {
+   301→    id: 57, number: "057", nameArabic: "الحديد", nameUrdu: "الحدید", nameEnglish: "Al-Hadeed", ayahCount: 29, type: "medinan",
+   302→    audio: [{ title: "Al-Hadeed", url: `${BASE_URL}057-AL-HADEED.mp3` }]
+   303→  },
+   304→  {
+   305→    id: 58, number: "058", nameArabic: "المجادلة", nameUrdu: "المجادلہ", nameEnglish: "Al-Mujaadilah", ayahCount: 22, type: "medinan",
+   306→    audio: [{ title: "Al-Mujaadilah", url: `${BASE_URL}058-AL-MUJADILAH.mp3` }]
+   307→  },
+   308→  {
+   309→    id: 59, number: "059", nameArabic: "الحشر", nameUrdu: "الحشر", nameEnglish: "Al-Hashr", ayahCount: 24, type: "medinan",
+   310→    audio: [{ title: "Al-Hashr", url: `${BASE_URL}059-AL-HASHR.mp3` }]
+   311→  },
+   312→  {
+   313→    id: 60, number: "060", nameArabic: "الممتحنة", nameUrdu: "الممتحنہ", nameEnglish: "Al-Mumtahinah", ayahCount: 13, type: "medinan",
+   314→    audio: [{ title: "Al-Mumtahinah", url: `${BASE_URL}060-AL-MUMTAHINAH.mp3` }]
+   315→  },
+   316→  {
+   317→    id: 61, number: "061", nameArabic: "الصف", nameUrdu: "الصف", nameEnglish: "As-Saff", ayahCount: 14, type: "medinan",
+   318→    audio: [{ title: "As-Saff", url: `${BASE_URL}061-AS-SAFF.mp3` }]
+   319→  },
+   320→  {
+   321→    id: 62, number: "062", nameArabic: "الجمعة", nameUrdu: "الجمعہ", nameEnglish: "Al-Jumu'ah", ayahCount: 11, type: "medinan",
+   322→    audio: [{ title: "Al-Jumu'ah", url: `${BASE_URL}062-AL-JUMU'AH.mp3` }]
+   323→  },
+   324→  {
+   325→    id: 63, number: "063", nameArabic: "المنافقون", nameUrdu: "المنافقون", nameEnglish: "Al-Munaafiqoon", ayahCount: 11, type: "medinan",
+   326→    audio: [{ title: "Al-Munaafiqoon", url: `${BASE_URL}063-AL-MUNAFIQOON.mp3` }]
+   327→  },
+   328→  {
+   329→    id: 64, number: "064", nameArabic: "التغابن", nameUrdu: "التغابن", nameEnglish: "At-Taghabun", ayahCount: 18, type: "medinan",
+   330→    audio: [{ title: "At-Taghabun", url: `${BASE_URL}064-AT-TAGHABUN.mp3` }]
+   331→  },
+   332→  {
+   333→    id: 65, number: "065", nameArabic: "الطلاق", nameUrdu: "الطلاق", nameEnglish: "At-Talaaq", ayahCount: 12, type: "medinan",
+   334→    audio: [{ title: "At-Talaaq", url: `${BASE_URL}065-AT-TALAAQ.mp3` }]
+   335→  },
+   336→  {
+   337→    id: 66, number: "066", nameArabic: "التحريم", nameUrdu: "التحریم", nameEnglish: "At-Tahreem", ayahCount: 12, type: "medinan",
+   338→    audio: [{ title: "At-Tahreem", url: `${BASE_URL}066-AT-TAHREEM.mp3` }]
+   339→  },
+   340→  {
+   341→    id: 67, number: "067", nameArabic: "الملك", nameUrdu: "الملک", nameEnglish: "Al-Mulk", ayahCount: 30, type: "meccan",
+   342→    audio: [{ title: "Al-Mulk", url: `${BASE_URL}067-AL-MULK.mp3` }]
+   343→  },
+   344→  {
+   345→    id: 68, number: "068", nameArabic: "القلم", nameUrdu: "القلم", nameEnglish: "Al-Qalam", ayahCount: 52, type: "meccan",
+   346→    audio: [{ title: "Al-Qalam", url: `${BASE_URL}068-AL-QALAM.mp3` }]
+   347→  },
+   348→  {
+   349→    id: 69, number: "069", nameArabic: "الحاقة", nameUrdu: "الحاقہ", nameEnglish: "Al-Haaqqah", ayahCount: 52, type: "meccan",
+   350→    audio: [{ title: "Al-Haaqqah", url: `${BASE_URL}069-AL-HAAQ-QAH.mp3` }]
+   351→  },
+   352→  {
+   353→    id: 70, number: "070", nameArabic: "المعارج", nameUrdu: "المعارج", nameEnglish: "Al-Ma'aarij", ayahCount: 44, type: "meccan",
+   354→    audio: [{ title: "Al-Ma'aarij", url: `${BASE_URL}070-AL-MA'ARIJ.mp3` }]
+   355→  },
+   356→  {
+   357→    id: 71, number: "071", nameArabic: "نوح", nameUrdu: "نوح", nameEnglish: "Nooh", ayahCount: 28, type: "meccan",
+   358→    audio: [{ title: "Nooh", url: `${BASE_URL}071-NOOH.MP3` }]
+   359→  },
+   360→  {
+   361→    id: 72, number: "072", nameArabic: "الجن", nameUrdu: "الجن", nameEnglish: "Al-Jinn", ayahCount: 28, type: "meccan",
+   362→    audio: [{ title: "Al-Jinn", url: `${BASE_URL}072-AL-JINN.mp3` }]
+   363→  },
+   364→  {
+   365→    id: 73, number: "073", nameArabic: "المزمل", nameUrdu: "المزمل", nameEnglish: "Al-Muzzammil", ayahCount: 20, type: "meccan",
+   366→    audio: [{ title: "Al-Muzzammil", url: `${BASE_URL}073-AL-MUZZAMMIL.mp3` }]
+   367→  },
+   368→  {
+   369→    id: 74, number: "074", nameArabic: "المدثر", nameUrdu: "المدثر", nameEnglish: "Al-Muddassir", ayahCount: 56, type: "meccan",
+   370→    audio: [{ title: "Al-Muddassir", url: `${BASE_URL}074-AL-MUDDASSIR.mp3` }]
+   371→  },
+   372→  {
+   373→    id: 75, number: "075", nameArabic: "القيامة", nameUrdu: "القیامہ", nameEnglish: "Al-Qiyaamah", ayahCount: 40, type: "meccan",
+   374→    audio: [{ title: "Al-Qiyaamah", url: `${BASE_URL}075-AL-QIYAAMAH.mp3` }]
+   375→  },
+   376→  {
+   377→    id: 76, number: "076", nameArabic: "الإنسان", nameUrdu: "الانسان", nameEnglish: "Ad-Dahr", ayahCount: 31, type: "medinan",
+   378→    audio: [{ title: "Ad-Dahr", url: `${BASE_URL}076-AD-DAHR.mp3` }]
+   379→  },
+   380→  {
+   381→    id: 77, number: "077", nameArabic: "المرسلات", nameUrdu: "المرسلات", nameEnglish: "Al-Mursalaat", ayahCount: 50, type: "meccan",
+   382→    audio: [{ title: "Al-Mursalaat", url: `${BASE_URL}077-AL-MURSALAAT.mp3` }]
+   383→  },
+   384→  {
+   385→    id: 78, number: "078", nameArabic: "النبأ", nameUrdu: "النبا", nameEnglish: "An-Naba", ayahCount: 40, type: "meccan",
+   386→    audio: [{ title: "An-Naba", url: `${BASE_URL}078-AN-NABA.mp3` }]
+   387→  },
+   388→  {
+   389→    id: 79, number: "079", nameArabic: "النازعات", nameUrdu: "النازعات", nameEnglish: "An-Naazi'aat", ayahCount: 46, type: "meccan",
+   390→    audio: [{ title: "An-Naazi'aat", url: `${BASE_URL}079-AN-NAZI'AAT.mp3` }]
+   391→  },
+   392→  {
+   393→    id: 80, number: "080", nameArabic: "عبس", nameUrdu: "عبس", nameEnglish: "Abas", ayahCount: 42, type: "meccan",
+   394→    audio: [{ title: "Abas", url: `${BASE_URL}080-ABAS.MP3` }]
+   395→  },
+   396→  {
+   397→    id: 81, number: "081", nameArabic: "التكوير", nameUrdu: "التکویر", nameEnglish: "At-Takweer", ayahCount: 29, type: "meccan",
+   398→    audio: [{ title: "At-Takweer", url: `${BASE_URL}081-AT-TAKWEER.mp3` }]
+   399→  },
+   400→  {
+   401→    id: 82, number: "082", nameArabic: "الانفطار", nameUrdu: "الانفطار", nameEnglish: "Al-Infitaar", ayahCount: 19, type: "meccan",
+   402→    audio: [{ title: "Al-Infitaar", url: `${BASE_URL}082-AL-INFITAAR.mp3` }]
+   403→  },
+   404→  {
+   405→    id: 83, number: "083", nameArabic: "المطففين", nameUrdu: "المطففین", nameEnglish: "Al-Mutaffifeen", ayahCount: 36, type: "meccan",
+   406→    audio: [{ title: "Al-Mutaffifeen", url: `${BASE_URL}083-AL-MUTTAFFIFEEN.mp3` }]
+   407→  },
+   408→  {
+   409→    id: 84, number: "084", nameArabic: "الانشقاق", nameUrdu: "الانشقاق", nameEnglish: "Al-Inshiqaaq", ayahCount: 25, type: "meccan",
+   410→    audio: [{ title: "Al-Inshiqaaq", url: `${BASE_URL}084-AL-INSHIQAAQ.mp3` }]
+   411→  },
+   412→  {
+   413→    id: 85, number: "085", nameArabic: "البروج", nameUrdu: "البروج", nameEnglish: "Al-Burooj", ayahCount: 22, type: "meccan",
+   414→    audio: [{ title: "Al-Burooj", url: `${BASE_URL}085-AL-BUROOJ.mp3` }]
+   415→  },
+   416→  {
+   417→    id: 86, number: "086", nameArabic: "الطارق", nameUrdu: "الطارق", nameEnglish: "At-Taariq", ayahCount: 17, type: "meccan",
+   418→    audio: [{ title: "At-Taariq", url: `${BASE_URL}086-AT-TARIQ.mp3` }]
+   419→  },
+   420→  {
+   421→    id: 87, number: "087", nameArabic: "الأعلى", nameUrdu: "الاعلٰی", nameEnglish: "Al-A'laa", ayahCount: 19, type: "meccan",
+   422→    audio: [{ title: "Al-A'laa", url: `${BASE_URL}087-AL-A'LAA.mp3` }]
+   423→  },
+   424→  {
+   425→    id: 88, number: "088", nameArabic: "الغاشية", nameUrdu: "الغاشیہ", nameEnglish: "Al-Ghashiyah", ayahCount: 26, type: "meccan",
+   426→    audio: [{ title: "Al-Ghashiyah", url: `${BASE_URL}088-AL-GHASHIAH.mp3` }]
+   427→  },
+   428→  {
+   429→    id: 89, number: "089", nameArabic: "الفجر", nameUrdu: "الفجر", nameEnglish: "Al-Fajr", ayahCount: 30, type: "meccan",
+   430→    audio: [{ title: "Al-Fajr", url: `${BASE_URL}089-AL-FAJR.mp3` }]
+   431→  },
+   432→  {
+   433→    id: 90, number: "090", nameArabic: "البلد", nameUrdu: "البلد", nameEnglish: "Al-Balad", ayahCount: 20, type: "meccan",
+   434→    audio: [{ title: "Al-Balad", url: `${BASE_URL}090-AL-BALAD.mp3` }]
+   435→  },
+   436→  {
+   437→    id: 91, number: "091", nameArabic: "الشمس", nameUrdu: "الشمس", nameEnglish: "Ash-Shams", ayahCount: 15, type: "meccan",
+   438→    audio: [{ title: "Ash-Shams", url: `${BASE_URL}091-AS-SHAMS.mp3` }]
+   439→  },
+   440→  {
+   441→    id: 92, number: "092", nameArabic: "الليل", nameUrdu: "اللیل", nameEnglish: "Al-Lail", ayahCount: 21, type: "meccan",
+   442→    audio: [{ title: "Al-Lail", url: `${BASE_URL}092-AL-LAIL.mp3` }]
+   443→  },
+   444→  {
+   445→    id: 93, number: "093", nameArabic: "الضحى", nameUrdu: "الضحٰی", nameEnglish: "Az-Zuhaa", ayahCount: 11, type: "meccan",
+   446→    audio: [{ title: "Az-Zuhaa", url: `${BASE_URL}093-AZ-ZUHAA.mp3` }]
+   447→  },
+   448→  {
+   449→    id: 94, number: "094", nameArabic: "الشرح", nameUrdu: "الشرح", nameEnglish: "Al-Inshirah", ayahCount: 8, type: "meccan",
+   450→    audio: [{ title: "Al-Inshirah", url: `${BASE_URL}094-AL-INSHIRAH.mp3` }]
+   451→  },
+   452→  {
+   453→    id: 95, number: "095", nameArabic: "التين", nameUrdu: "التین", nameEnglish: "At-Teen", ayahCount: 8, type: "meccan",
+   454→    audio: [{ title: "At-Teen", url: `${BASE_URL}095-AT-TEEN.mp3` }]
+   455→  },
+   456→  {
+   457→    id: 96, number: "096", nameArabic: "العلق", nameUrdu: "العلق", nameEnglish: "Al-Alaq", ayahCount: 19, type: "meccan",
+   458→    audio: [{ title: "Al-Alaq", url: `${BASE_URL}096-AL-ALAQ.mp3` }]
+   459→  },
+   460→  {
+   461→    id: 97, number: "097", nameArabic: "القدر", nameUrdu: "القدر", nameEnglish: "Al-Qadr", ayahCount: 5, type: "meccan",
+   462→    audio: [{ title: "Al-Qadr", url: `${BASE_URL}097-Al-Qadr.mp3` }]
+   463→  },
+   464→  {
+   465→    id: 98, number: "098", nameArabic: "البينة", nameUrdu: "البینہ", nameEnglish: "Al-Bayyinah", ayahCount: 8, type: "medinan",
+   466→    audio: [{ title: "Al-Bayyinah", url: `${BASE_URL}098-AL-BAYYINAH.mp3` }]
+   467→  },
+   468→  {
+   469→    id: 99, number: "099", nameArabic: "الزلزلة", nameUrdu: "الزلزلہ", nameEnglish: "Az-Zilzaal", ayahCount: 8, type: "medinan",
+   470→    audio: [{ title: "Az-Zilzaal", url: `${BASE_URL}099-AZ-ZILZAAL.mp3` }]
+   471→  },
+   472→  {
+   473→    id: 100, number: "100", nameArabic: "العاديات", nameUrdu: "العادیات", nameEnglish: "Al-Aadiaat", ayahCount: 11, type: "meccan",
+   474→    audio: [{ title: "Al-Aadiaat", url: `${BASE_URL}100-AL-ADIAAT.mp3` }]
+   475→  },
+   476→  {
+   477→    id: 101, number: "101", nameArabic: "القارعة", nameUrdu: "القارعہ", nameEnglish: "Al-Qaari'ah", ayahCount: 11, type: "meccan",
+   478→    audio: [{ title: "Al-Qaari'ah", url: `${BASE_URL}101-AL-QAAR'IAH.mp3` }]
+   479→  },
+   480→  {
+   481→    id: 102, number: "102", nameArabic: "التكاثر", nameUrdu: "التکاثر", nameEnglish: "At-Takaathur", ayahCount: 8, type: "meccan",
+   482→    audio: [{ title: "At-Takaathur", url: `${BASE_URL}102AT-TAKASUR.mp3` }]
+   483→  },
+   484→  {
+   485→    id: 103, number: "103", nameArabic: "العصر", nameUrdu: "العصر", nameEnglish: "Al-Asr", ayahCount: 3, type: "meccan",
+   486→    audio: [{ title: "Al-Asr", url: `${BASE_URL}103-AL-ASR.mp3` }]
+   487→  },
+   488→  {
+   489→    id: 104, number: "104", nameArabic: "الهمزة", nameUrdu: "الھمزہ", nameEnglish: "Al-Humazah", ayahCount: 9, type: "meccan",
+   490→    audio: [{ title: "Al-Humazah", url: `${BASE_URL}104-AL-HUMAZAH.mp3` }]
+   491→  },
+   492→  {
+   493→    id: 105, number: "105", nameArabic: "الفيل", nameUrdu: "الفیل", nameEnglish: "Al-Feel", ayahCount: 5, type: "meccan",
+   494→    audio: [{ title: "Al-Feel", url: `${BASE_URL}105-AL-FEEL.mp3` }]
+   495→  },
+   496→  {
+   497→    id: 106, number: "106", nameArabic: "قريش", nameUrdu: "قریش", nameEnglish: "Quraish", ayahCount: 4, type: "meccan",
+   498→    audio: [{ title: "Quraish", url: `${BASE_URL}106-QURESH.mp3` }]
+   499→  },
+   500→  {
+   501→    id: 107, number: "107", nameArabic: "الماعون", nameUrdu: "الماعون", nameEnglish: "Al-Maa'oon", ayahCount: 7, type: "meccan",
+   502→    audio: [{ title: "Al-Maa'oon", url: `${BASE_URL}107-AL-MAA'OON.mp3` }]
+   503→  },
+   504→  {
+   505→    id: 108, number: "108", nameArabic: "الكوثر", nameUrdu: "الکوثر", nameEnglish: "Al-Kausar", ayahCount: 3, type: "meccan",
+   506→    audio: [{ title: "Al-Kausar", url: `${BASE_URL}108-AL-KAUSER.mp3` }]
+   507→  },
+   508→  {
+   509→    id: 109, number: "109", nameArabic: "الكافرون", nameUrdu: "الکافرون", nameEnglish: "Al-Kaafiroon", ayahCount: 6, type: "meccan",
+   510→    audio: [{ title: "Al-Kaafiroon", url: `${BASE_URL}109-AL-KAFIROON.mp3` }]
+   511→  },
+   512→  {
+   513→    id: 110, number: "110", nameArabic: "النصر", nameUrdu: "النصر", nameEnglish: "An-Nasr", ayahCount: 3, type: "medinan",
+   514→    audio: [{ title: "An-Nasr", url: `${BASE_URL}110-AN-NASR.mp3` }]
+   515→  },
+   516→  {
+   517→    id: 111, number: "111", nameArabic: "المسد", nameUrdu: "المسد", nameEnglish: "Al-Lahab", ayahCount: 5, type: "meccan",
+   518→    audio: [{ title: "Al-Lahab", url: `${BASE_URL}111-AL-LAHAB.mp3` }]
+   519→  },
+   520→  {
+   521→    id: 112, number: "112", nameArabic: "الإخلاص", nameUrdu: "الاخلاص", nameEnglish: "Al-Ikhlaas", ayahCount: 4, type: "meccan",
+   522→    audio: [{ title: "Al-Ikhlaas", url: `${BASE_URL}112-AL-IKHLAAS.mp3` }]
+   523→  },
+   524→  {
+   525→    id: 113, number: "113", nameArabic: "الفلق", nameUrdu: "الفلق", nameEnglish: "Al-Falaq", ayahCount: 5, type: "meccan",
+   526→    audio: [{ title: "Al-Falaq", url: `${BASE_URL}113-AL-FALAQ.mp3` }]
+   527→  },
+   528→  {
+   529→    id: 114, number: "114", nameArabic: "الناس", nameUrdu: "الناس", nameEnglish: "An-Naas", ayahCount: 6, type: "meccan",
+   530→    audio: [{ title: "An-Naas", url: `${BASE_URL}114-AN-NAAS.mp3` }]
+   531→  },
+   532→];
