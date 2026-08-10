@@ -133,6 +133,7 @@ export default function Home() {
   const [quranLoading, setQuranLoading] = useState(false);
   const [quranError, setQuranError] = useState("");
   const [quranRetryKey, setQuranRetryKey] = useState(0);
+  const quranLoadingRef = useRef(false);
 
   // Restore state from localStorage on mount
   useEffect(() => {
@@ -160,15 +161,15 @@ export default function Home() {
     } catch {}
   }, []);
 
-  // Save audio position periodically
+  // Save audio position periodically (with track URL so we only restore for the same track)
   useEffect(() => {
     const interval = setInterval(() => {
-      if (audioRef.current && audioRef.current.currentTime > 0) {
-        try { localStorage.setItem("bayan-audio-time", String(audioRef.current.currentTime)); } catch {}
+      if (audioRef.current && audioRef.current.currentTime > 0 && currentTrack) {
+        try { localStorage.setItem("bayan-audio-pos", JSON.stringify({ url: currentTrack.url, time: audioRef.current.currentTime })); } catch {}
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentTrack]);
 
   // Save state to localStorage on changes
   useEffect(() => {
@@ -181,17 +182,19 @@ export default function Home() {
     try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
   }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedSurahForReading, selectedCity, useGeo]);
 
-  // Restore audio position after track loads
+  // Restore audio position after track loads (only if same track URL)
   useEffect(() => {
     if (!audioRef.current || !currentTrack || isLoadingRef.current) return;
-    const savedTime = localStorage.getItem("bayan-audio-time");
-    if (savedTime) {
-      const t = parseFloat(savedTime);
-      if (t > 0 && isFinite(t)) {
-        audioRef.current.currentTime = t;
-        setCurrentTime(t);
+    try {
+      const saved = localStorage.getItem("bayan-audio-pos");
+      if (saved) {
+        const { url, time } = JSON.parse(saved);
+        if (url === currentTrack.url && time > 0 && isFinite(time)) {
+          audioRef.current.currentTime = time;
+          setCurrentTime(time);
+        }
       }
-    }
+    } catch {}
   }, [currentTrack]);
 
   const filteredSurahs = useMemo(
@@ -364,6 +367,7 @@ export default function Home() {
     const onDur = () => setDuration(audio.duration);
     const onEnd = () => {
       setIsPlaying(false);
+      try { localStorage.removeItem("bayan-audio-pos"); } catch {}
       playNext();
     };
     const onError = () => {
@@ -481,13 +485,17 @@ export default function Home() {
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
 
-  // Fetch Quran surah
+  // Fetch Quran surah — fetches static JSON from /quran-surahs/ (no API route needed, works reliably on Vercel)
   useEffect(() => {
-    if (activeTab !== "quran" || quranLoading) return;
+    if (activeTab !== "quran" || quranLoadingRef.current) return;
+    quranLoadingRef.current = true;
     setQuranLoading(true);
     setQuranError("");
-    fetch(`/api/quran?surah=${selectedSurahForReading}`)
-      .then((r) => r.json())
+    fetch(`/quran-surahs/surah-${selectedSurahForReading}.json`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Not found");
+        return r.json();
+      })
       .then((data) => {
         if (data.error) {
           setQuranError(data.error);
@@ -499,8 +507,11 @@ export default function Home() {
       .catch(() => {
         setQuranError("Failed to load. Check your internet connection.");
       })
-      .finally(() => setQuranLoading(false));
-  }, [activeTab, selectedSurahForReading, quranLoading, quranRetryKey]);
+      .finally(() => {
+        quranLoadingRef.current = false;
+        setQuranLoading(false);
+      });
+  }, [activeTab, selectedSurahForReading, quranRetryKey]);
 
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
