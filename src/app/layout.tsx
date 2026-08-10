@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { ServiceWorkerRegistrar } from "@/components/sw-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -11,8 +12,10 @@ export const metadata: Metadata = {
   title: "Bayan ul Quran - Dr. Israr Ahmad",
   description:
     "Complete Quran Tafseer (Bayan ul Quran) by Dr. Israr Ahmad in Urdu. Listen to audio lectures covering all 114 Surahs of the Holy Quran.",
+  manifest: "/manifest.json",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>",
+    icon: "/icon.svg",
+    apple: "/icon-192.png",
   },
 };
 
@@ -23,7 +26,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ur" dir="ltr" suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#065f46" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className={`${geistSans.variable} antialiased`}>
+        <ServiceWorkerRegistrar />
         {children}
       </body>
     </html>

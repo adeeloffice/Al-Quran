@@ -513,7 +513,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer">
-                <Button size="sm" className="bg-amber-500 hover:bg-amber-400 text-white text-xs sm:text-sm gap-1.5">
+                <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-semibold">
                   <Heart className="w-3.5 h-3.5 fill-current" />
                   <span className="hidden sm:inline">Donate for Orphan</span>
                   <span className="sm:hidden">Donate</span>
