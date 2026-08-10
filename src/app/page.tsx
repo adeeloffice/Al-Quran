@@ -481,21 +481,10 @@ export default function Home() {
             className="group relative px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white text-lg font-semibold rounded-2xl shadow-lg shadow-emerald-900/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-800/40 active:scale-95"
           >
             <span className="flex items-center gap-2">
-              Enter App
+              استمع الآن
               <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </span>
           </button>
-          
-          {/* Donate link on landing */}
-          <a
-            href="https://www.sos.org.pk/PersonForm"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 flex items-center gap-2 text-emerald-400 hover:text-teal-300 text-sm transition-colors"
-          >
-            <Heart className="w-4 h-4" />
-            <span>Donate for Orphan</span>
-          </a>
         </div>
         
         {/* Bottom decoration */}
@@ -523,8 +512,8 @@ export default function Home() {
               </div>
             </div>
             <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-              <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white text-xs sm:text-sm gap-1.5">
-                <Heart className="w-3.5 h-3.5" />
+              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white text-xs sm:text-sm gap-1.5">
+                <Heart className="w-3.5 h-3.5 fill-current" />
                 <span className="hidden sm:inline">Donate for Orphan</span>
                 <span className="sm:hidden">Donate</span>
               </Button>
