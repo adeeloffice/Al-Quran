@@ -1,41 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
-async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
+async function fetchJSON(url: string, retries = 2): Promise<any> {
   for (let i = 0; i <= retries; i++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const tid = setTimeout(() => controller.abort(), 10000);
     try {
       const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
-      clearTimeout(timeoutId);
-      if (res.ok) return res;
-      if (i === retries) return res;
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (i === retries) throw err;
+      clearTimeout(tid);
+      const data = await res.json();
+      if (data.code === 200) return data;
+      if (i === retries) throw new Error(`API error: ${res.status}`);
+    } catch (e) {
+      clearTimeout(tid);
+      if (i === retries) throw e;
     }
   }
   throw new Error("All retries failed");
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const surah = searchParams.get("surah");
+  const surah = request.nextUrl.searchParams.get("surah") || "1";
 
   try {
-    const [arabicRes, urduRes] = await Promise.all([
-      fetchWithRetry(`https://api.alquran.cloud/v1/surah/${surah || 1}/quran-uthmani`),
-      fetchWithRetry(`https://api.alquran.cloud/v1/surah/${surah || 1}/urdu.junagarhi`),
+    const [arabicData, urduData] = await Promise.all([
+      fetchJSON(`https://api.alquran.cloud/v1/surah/${surah}/quran-uthmani`),
+      fetchJSON(`https://api.alquran.cloud/v1/surah/${surah}/urdu.junagarhi`),
     ]);
-
-    const arabicData = await arabicRes.json();
-    const urduData = await urduRes.json();
-
-    if (arabicData.code !== 200 || urduData.code !== 200) {
-      return NextResponse.json(
-        { error: "Failed to fetch Quran data from API" },
-        { status: 502 }
-      );
-    }
 
     const ayahs = arabicData.data.ayahs.map(
       (a: { number: number; numberInSurah: number; text: string }, i: number) => ({
@@ -56,7 +46,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Quran API error:", error);
     return NextResponse.json(
-      { error: "Quran API timed out. Please tap Try Again." },
+      { error: "Quran API could not be reached. Please try again later." },
       { status: 502 }
     );
   }

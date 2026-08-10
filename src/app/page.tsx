@@ -481,7 +481,7 @@ export default function Home() {
             className="group relative px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white text-lg font-semibold rounded-2xl shadow-lg shadow-emerald-900/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-800/40 active:scale-95"
           >
             <span className="flex items-center gap-2">
-              استمع الآن
+              Login
               <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </span>
           </button>
@@ -511,13 +511,19 @@ export default function Home() {
                 <p className="text-emerald-200 text-xs sm:text-sm">Dr. Israr Ahmad</p>
               </div>
             </div>
-            <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white text-xs sm:text-sm gap-1.5">
-                <Heart className="w-3.5 h-3.5 fill-current" />
-                <span className="hidden sm:inline">Donate for Orphan</span>
-                <span className="sm:hidden">Donate</span>
+            <div className="flex items-center gap-2">
+              <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer">
+                <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white text-xs sm:text-sm gap-1.5">
+                  <Heart className="w-3.5 h-3.5 fill-current" />
+                  <span className="hidden sm:inline">Donate for Orphan</span>
+                  <span className="sm:hidden">Donate</span>
+                </Button>
+              </a>
+              <Button size="sm" variant="ghost" className="text-emerald-200 hover:text-white hover:bg-emerald-700 text-xs sm:text-sm gap-1.5" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
+                <X className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
-            </a>
+            </div>
           </div>
         </div>
       </header>
