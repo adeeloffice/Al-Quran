@@ -469,21 +469,40 @@ export default function Home() {
     }
   }, [selectedCity, useGeo]);
 
+  // Request device orientation permission (required on iOS 13+)
+  const requestOrientationPermission = useCallback(async () => {
+    if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+      try {
+        const perm = await (DeviceOrientationEvent as any).requestPermission();
+        if (perm === "granted") {
+          setHasGyro(null); // reset to re-trigger the listener effect
+        }
+      } catch {
+        setHasGyro(false);
+      }
+    }
+  }, []);
+
   // Device orientation for Qibla compass
   useEffect(() => {
+    // On iOS, don't set up listener until permission is granted
+    if (typeof (DeviceOrientationEvent as any).requestPermission === "function" && hasGyro === null) {
+      // Wait for user to trigger permission via button tap
+      return;
+    }
     const onOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha !== null) {
         setDeviceHeading(e.alpha);
         setHasGyro(true);
       }
     };
-    window.addEventListener('deviceorientation', onOrientation);
-    // Check after 1s if we got any reading
+    window.addEventListener("deviceorientation", onOrientation);
+    // Check after 1.5s if we got any reading
     const timer = setTimeout(() => {
-      if (hasGyro === null) setHasGyro(false);
-    }, 1000);
+      setHasGyro((prev) => (prev === null ? false : prev));
+    }, 1500);
     return () => {
-      window.removeEventListener('deviceorientation', onOrientation);
+      window.removeEventListener("deviceorientation", onOrientation);
       clearTimeout(timer);
     };
   }, [hasGyro]);
@@ -925,8 +944,12 @@ export default function Home() {
                   <p className="text-sm text-center text-muted-foreground">
                     Qibla: <span className="font-semibold text-emerald-700">{Math.round(qiblaAngle)}°</span> from North
                   </p>
-                  {hasGyro === false && (
-                    <p className="text-xs text-center text-amber-600 mt-1">Hold phone flat and rotate to find Qibla</p>
+                  <p className="text-xs text-center text-amber-600 mt-2">Hold phone flat and rotate to find Qibla</p>
+                  {hasGyro === null && typeof (DeviceOrientationEvent as any).requestPermission === "function" && (
+                    <Button size="sm" variant="outline" className="mt-2 border-emerald-300 text-emerald-700 text-xs" onClick={requestOrientationPermission}>
+                      <Navigation className="w-3.5 h-3.5 mr-1" />
+                      Enable Compass
+                    </Button>
                   )}
                 </div>
               ) : (
