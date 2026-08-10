@@ -127,13 +127,15 @@ export default function Home() {
   const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
   const [hasGyro, setHasGyro] = useState<boolean | null>(null);
 
-  // Quran reading state
-  const [selectedSurahForReading, setSelectedSurahForReading] = useState<number>(1);
-  const [quranData, setQuranData] = useState<QuranSurah | null>(null);
+  // Quran reading state - Para based
+  const [selectedPara, setSelectedPara] = useState<number>(1);
+  const [paraSurahsData, setParaSurahsData] = useState<(QuranSurah & { _fromAyah?: number; _toAyah?: number })[]>([]);
   const [quranLoading, setQuranLoading] = useState(false);
   const [quranError, setQuranError] = useState("");
   const [quranRetryKey, setQuranRetryKey] = useState(0);
   const quranLoadingRef = useRef(false);
+  const [visibleSurahId, setVisibleSurahId] = useState<number | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Restore state from localStorage on mount
   useEffect(() => {
@@ -147,7 +149,7 @@ export default function Home() {
         if (s.activeTab) setActiveTab(s.activeTab);
         if (s.volume !== undefined) setVolume(s.volume);
         if (s.isMuted !== undefined) setIsMuted(s.isMuted);
-        if (s.selectedSurahForReading) setSelectedSurahForReading(s.selectedSurahForReading);
+        if (s.selectedPara) setSelectedPara(s.selectedPara);
 
         if (s.trackUrl) {
           const track: SurahAudio = { url: s.trackUrl, title: s.trackTitle || "" };
@@ -172,14 +174,14 @@ export default function Home() {
 
   // Save state to localStorage on changes
   useEffect(() => {
-    const state: any = { entered, activeTab, volume, isMuted, selectedSurahForReading };
+    const state: any = { entered, activeTab, volume, isMuted, selectedPara };
     if (currentTrack) {
       state.trackUrl = currentTrack.url;
       state.trackTitle = currentTrack.title;
       if (currentSurah) state.surahId = currentSurah.id;
     }
     try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
-  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedSurahForReading]);
+  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedPara]);
 
   // Restore audio position after track loads (only if same track URL)
   useEffect(() => {
@@ -536,24 +538,34 @@ export default function Home() {
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
 
-  // Fetch Quran surah — from API (real Urdu Junagarhi translation from Quran.com, with local fallback)
+  // Fetch all surahs for the selected Para
   useEffect(() => {
     if (activeTab !== "quran" || quranLoadingRef.current) return;
+    const para = paras.find(p => p.id === selectedPara);
+    if (!para) return;
+
     quranLoadingRef.current = true;
     setQuranLoading(true);
     setQuranError("");
-    fetch(`/api/quran?surah=${selectedSurahForReading}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Not found");
-        return r.json();
-      })
-      .then((data) => {
-        if (data.error) {
-          setQuranError(data.error);
-          setQuranData(null);
-        } else {
-          setQuranData(data);
-        }
+    setParaSurahsData([]);
+    setVisibleSurahId(para.surahs[0]?.id || null);
+
+    // Fetch all surahs in this para in parallel
+    const fetches = para.surahs.map(s =>
+      fetch(`/api/quran?surah=${s.id}`)
+        .then(r => { if (!r.ok) throw new Error(`Surah ${s.id} not found`); return r.json(); })
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          // Filter ayahs to para range and tag with range info
+          const filtered = data.ayahs.filter((a: QuranAyah) => a.numberInSurah >= s.fromAyah && a.numberInSurah <= s.toAyah);
+          return { ...data, ayahs: filtered, _fromAyah: s.fromAyah, _toAyah: s.toAyah };
+        })
+    );
+
+    Promise.all(fetches)
+      .then(results => {
+        setParaSurahsData(results);
+        if (results.length > 0) setVisibleSurahId(results[0].surah);
       })
       .catch(() => {
         setQuranError("Failed to load. Check your internet connection.");
@@ -562,7 +574,43 @@ export default function Home() {
         quranLoadingRef.current = false;
         setQuranLoading(false);
       });
-  }, [activeTab, selectedSurahForReading, quranRetryKey]);
+  }, [activeTab, selectedPara, quranRetryKey]);
+
+  // IntersectionObserver to track which surah is visible for dynamic metadata
+  useEffect(() => {
+    if (paraSurahsData.length === 0) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const observers: IntersectionObserver[] = [];
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const id = Number(entry.target.getAttribute("data-surah-id"));
+          if (id) setVisibleSurahId(id);
+        }
+      }
+    };
+
+    // Small delay to ensure DOM elements exist
+    const timer = setTimeout(() => {
+      const sectionEls = container.querySelectorAll("[data-surah-id]");
+      sectionEls.forEach(el => {
+        const obs = new IntersectionObserver(handleIntersect, {
+          root: container,
+          rootMargin: "-30% 0px -60% 0px",
+          threshold: 0,
+        });
+        obs.observe(el);
+        observers.push(obs);
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      observers.forEach(obs => obs.disconnect());
+    };
+  }, [paraSurahsData]);
 
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
@@ -743,33 +791,20 @@ export default function Home() {
         )}
 
         
-        {activeTab === "quran" && (
+                {activeTab === "quran" && (
           <div>
-            <div className="flex gap-3 mb-4">
-              <select
-                className="flex-1 h-11 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-gray-700 rounded-xl px-3 text-sm focus:outline-none focus:border-emerald-500 dark:text-gray-200"
-                value={selectedSurahForReading}
-                onChange={(e) => setSelectedSurahForReading(Number(e.target.value))}
-              >
-                {surahs.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.id}. {s.nameEnglish} ({s.nameArabic}) - {s.ayahCount} Ayahs
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Quick Para Navigation */}
+            {/* Para selector buttons */}
             <div className="mb-4">
-              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Jump to Para</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Select Para (Juz)</p>
               <div className="flex flex-wrap gap-1.5">
                 {paras.map((p) => (
                   <button
                     key={p.id}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-200 hover:bg-emerald-50 hover:border-emerald-400 transition-colors text-emerald-800 font-medium"
-                    onClick={() => setSelectedSurahForReading(p.fromSurah)}
+                    className={`px-3 py-2 text-xs sm:text-sm rounded-lg border transition-all font-medium ${selectedPara === p.id ? "bg-emerald-700 text-white border-emerald-700 shadow-md" : "border-emerald-200 hover:bg-emerald-50 hover:border-emerald-400 text-emerald-800"}`}
+                    onClick={() => setSelectedPara(p.id)}
                   >
-                    {p.id}
+                    <span className="block text-center font-bold">{toArabicNumeral(p.id)}</span>
+                    <span className="block text-center text-[9px] sm:text-[10px] opacity-75" dir="rtl">{p.nameUrdu}</span>
                   </button>
                 ))}
               </div>
@@ -778,7 +813,7 @@ export default function Home() {
             {quranLoading && (
               <div className="flex flex-col items-center py-12 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin mb-2 text-emerald-600" />
-                <p className="text-sm">Loading Surah...</p>
+                <p className="text-sm">Loading Para {toArabicNumeral(selectedPara)}...</p>
               </div>
             )}
 
@@ -791,84 +826,101 @@ export default function Home() {
               </div>
             )}
 
-            {quranData && !quranLoading && (
+            {paraSurahsData.length > 0 && !quranLoading && (
               <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
+                {/* Header: Para name + navigation */}
                 <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 px-4 py-3 flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-white text-lg" dir="rtl" style={{ fontFamily: "'Amiri Quran', serif" }}>{quranData.nameArabic}</h3>
-                    <p className="text-emerald-200 text-xs">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
+                    <h3 className="font-bold text-white text-lg" dir="rtl" style={{ fontFamily: "'Amiri Quran', serif" }}>
+                      جزء {toArabicNumeral(selectedPara)} - {paras.find(p => p.id === selectedPara)?.nameUrdu || ""}
+                    </h3>
+                    <p className="text-emerald-200 text-xs">Juz {selectedPara} - {paras.find(p => p.id === selectedPara)?.nameEnglish || ""}</p>
                   </div>
                   <div className="flex gap-1">
-                    {selectedSurahForReading > 1 && (
-                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedSurahForReading((prev) => prev - 1)}>
+                    {selectedPara > 1 && (
+                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedPara((prev) => prev - 1)}>
                         Prev
                       </Button>
                     )}
-                    {selectedSurahForReading < 114 && (
-                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedSurahForReading((prev) => prev + 1)}>
+                    {selectedPara < 30 && (
+                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedPara((prev) => prev + 1)}>
                         Next
                       </Button>
                     )}
                   </div>
                 </div>
-                {/* Metadata bar: Ruku, Surah, Hizb, Para - like a printed Mushaf */}
+
+                {/* Dynamic metadata bar - updates on scroll */}
                 {(() => {
-                  const meta = getSurahMeta(quranData.surah);
-                  const surahParas = paras.filter(p => p.fromSurah <= quranData.surah && p.toSurah >= quranData.surah);
-                  const paraNums = surahParas.map(p => p.id);
-                  const firstPara = paraNums[0];
-                  const [hizbStart] = getHizbRange(firstPara);
-                  const paraLabel = paraNums.length > 1 ? `${toArabicNumeral(paraNums[0])}-${toArabicNumeral(paraNums[paraNums.length - 1])}` : toArabicNumeral(firstPara);
+                  const visibleSurah = paraSurahsData.find(s => s.surah === visibleSurahId) || paraSurahsData[0];
+                  if (!visibleSurah) return null;
+                  const meta = getSurahMeta(visibleSurah.surah);
+                  const [hizbStart] = getHizbRange(selectedPara);
                   return (
-                    <div className="border-b border-emerald-200 bg-emerald-50/50 px-3 py-2.5 flex items-center justify-around gap-2 text-xs sm:text-sm" dir="rtl">
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                    <div className="border-b border-emerald-200 bg-emerald-50/50 px-2 sm:px-3 py-2 flex items-center justify-around gap-1.5 text-[10px] sm:text-xs" dir="rtl">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">الرُّكُوعُ</span>
                         <span className="font-bold text-emerald-800">{toArabicNumeral(meta?.rukus || 0)}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">سورة</span>
-                        <span className="font-bold text-emerald-800" dir="rtl">{quranData.nameArabic}</span>
-                        <span className="text-muted-foreground">({toArabicNumeral(quranData.surah)})</span>
+                        <span className="font-bold text-emerald-800" dir="rtl">{visibleSurah.nameArabic}</span>
+                        <span className="text-muted-foreground">({toArabicNumeral(visibleSurah.surah)})</span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">الحزب</span>
                         <span className="font-bold text-emerald-800">{toArabicNumeral(hizbStart)}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">جزء</span>
-                        <span className="font-bold text-emerald-800">{paraLabel}</span>
+                        <span className="font-bold text-emerald-800">{toArabicNumeral(selectedPara)}</span>
                       </div>
                     </div>
                   );
                 })()}
-                <div className="p-3 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar bg-[#faf8f0]">
-                  {/* Bismillah at top (not as ayah) for surahs other than 1 and 9 */}
-                  {quranData.surah !== 1 && quranData.surah !== 9 && (
-                    <p className="text-center text-2xl sm:text-3xl text-gray-900 font-medium pb-4 mb-2" dir="rtl" lang="ar" style={{ fontFamily: "'Amiri Quran', serif" }}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
-                  )}
-                  {/* Mushaf-style: continuous justified Arabic text with inline ayah numbers */}
-                  <div dir="rtl" lang="ar" className="text-2xl sm:text-[28px] md:text-3xl text-gray-900 leading-[2.8] sm:leading-[3] text-justify font-normal" style={{ fontFamily: "'Amiri Quran', 'Amiri', serif" }}>
-                    {quranData.ayahs.map((ayah) => (
-                      <span key={ayah.number}>
-                        {ayah.arabic}
-                        <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
-                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] text-gray-500">﴿</span>
-                          <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
-                          <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] text-gray-500">﴾</span>
-                        </span>
-                      </span>
-                    ))}
-                  </div>
+
+                {/* Scrollable content: all surahs in this para */}
+                <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto custom-scrollbar bg-[#faf8f0]">
+                  {paraSurahsData.map((surahData, sIdx) => (
+                    <div key={surahData.surah} data-surah-id={surahData.surah} className="px-3 sm:px-6 py-4">
+                      {/* Surah heading for multi-surah paras */}
+                      {paraSurahsData.length > 1 && (
+                        <div className="text-center mb-4">
+                          <h4 className="text-xl sm:text-2xl font-bold text-emerald-800" dir="rtl" style={{ fontFamily: "'Amiri Quran', serif" }}>{surahData.nameArabic}</h4>
+                          <p className="text-xs text-muted-foreground">Surah {surahData.surah} - {surahData.name} ({surahData.ayahs.length} Ayahs)</p>
+                        </div>
+                      )}
+                      {/* Bismillah (not for Surah 1 and 9, and not for mid-surah starts) */}
+                      {surahData._fromAyah === 1 && surahData.surah !== 1 && surahData.surah !== 9 && (
+                        <p className="text-center text-2xl sm:text-3xl text-gray-900 font-medium pb-4 mb-2" dir="rtl" lang="ar" style={{ fontFamily: "'Amiri Quran', serif" }}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+                      )}
+                      {/* Mushaf-style continuous text */}
+                      <div dir="rtl" lang="ar" className="text-2xl sm:text-[28px] md:text-3xl text-gray-900 leading-[2.8] sm:leading-[3] text-justify font-normal" style={{ fontFamily: "'Amiri Quran', 'Amiri', serif" }}>
+                        {surahData.ayahs.map((ayah) => (
+                          <span key={ayah.number}>
+                            {ayah.arabic}
+                            <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
+                              <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                      {/* Separator between surahs */}
+                      {sIdx < paraSurahsData.length - 1 && (
+                        <div className="my-6 flex items-center gap-3">
+                          <div className="flex-1 border-t border-emerald-300/50" />
+                          <span className="text-emerald-600 text-lg">✦</span>
+                          <div className="flex-1 border-t border-emerald-300/50" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
         )}
 
-        
-
-
-        
         {activeTab === "asmaulhusna" && (
           <div>
             <div className="text-center mb-4">
