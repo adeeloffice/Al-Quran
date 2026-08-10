@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { surahs, introductions, type Surah, type SurahAudio } from "@/lib/surah-data";
 import { asmaUlHusna } from "@/lib/asma-ul-husna";
 import { paras } from "@/lib/quran-paras";
+import { getSurahMeta, getHizbRange } from "@/lib/surah-meta";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -810,7 +811,37 @@ export default function Home() {
                     )}
                   </div>
                 </div>
-                <div className="p-3 sm:p-6 max-h-[70vh] overflow-y-auto custom-scrollbar bg-[#faf8f0]">
+                {/* Metadata bar: Ruku, Surah, Hizb, Para - like a printed Mushaf */}
+                {(() => {
+                  const meta = getSurahMeta(quranData.surah);
+                  const surahParas = paras.filter(p => p.fromSurah <= quranData.surah && p.toSurah >= quranData.surah);
+                  const paraNums = surahParas.map(p => p.id);
+                  const firstPara = paraNums[0];
+                  const [hizbStart] = getHizbRange(firstPara);
+                  const paraLabel = paraNums.length > 1 ? `${toArabicNumeral(paraNums[0])}-${toArabicNumeral(paraNums[paraNums.length - 1])}` : toArabicNumeral(firstPara);
+                  return (
+                    <div className="border-b border-emerald-200 bg-emerald-50/50 px-3 py-2.5 flex items-center justify-around gap-2 text-xs sm:text-sm" dir="rtl">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                        <span className="text-muted-foreground">الرُّكُوعُ</span>
+                        <span className="font-bold text-emerald-800">{toArabicNumeral(meta?.rukus || 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                        <span className="text-muted-foreground">سورة</span>
+                        <span className="font-bold text-emerald-800" dir="rtl">{quranData.nameArabic}</span>
+                        <span className="text-muted-foreground">({toArabicNumeral(quranData.surah)})</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                        <span className="text-muted-foreground">الحزب</span>
+                        <span className="font-bold text-emerald-800">{toArabicNumeral(hizbStart)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white shadow-sm">
+                        <span className="text-muted-foreground">جزء</span>
+                        <span className="font-bold text-emerald-800">{paraLabel}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div className="p-3 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar bg-[#faf8f0]">
                   {/* Bismillah at top (not as ayah) for surahs other than 1 and 9 */}
                   {quranData.surah !== 1 && quranData.surah !== 9 && (
                     <p className="text-center text-2xl sm:text-3xl text-gray-900 font-medium pb-4 mb-2" dir="rtl" lang="ar" style={{ fontFamily: "'Amiri Quran', serif" }}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
