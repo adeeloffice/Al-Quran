@@ -724,7 +724,6 @@ export default function Home() {
               <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-bold shadow-md hover:shadow-lg" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Sign Out</span>
-                <span className="sm:hidden">Out</span>
               </Button>
             </div>
           </div>
@@ -733,14 +732,14 @@ export default function Home() {
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 sm:py-6 pb-44">
         {/* Search */}
-        {(activeTab === "surahs" || activeTab === "asmaulhusna") && (
+        {activeTab === "surahs" && (
           <div className="relative mb-4 sm:mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder={activeTab === "asmaulhusna" ? "Search 99 Names of Allah..." : "Search surah by name or number..."}
+              placeholder="Search surah by name or number..."
               className="pl-10 h-11 bg-white dark:bg-gray-800 border-emerald-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
-              value={activeTab === "asmaulhusna" ? asmaSearch : searchQuery}
-              onChange={(e) => (activeTab === "asmaulhusna" ? setAsmaSearch(e.target.value) : setSearchQuery(e.target.value))}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         )}
