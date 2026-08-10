@@ -100,6 +100,7 @@ const CITY_OPTIONS = [
 ];
 
 export default function Home() {
+  const [entered, setEntered] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTrack, setCurrentTrack] = useState<SurahAudio | null>(null);
   const [currentSurah, setCurrentSurah] = useState<Surah | null>(null);
@@ -439,6 +440,60 @@ export default function Home() {
     { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
   ];
 
+  // Landing screen
+  if (!entered) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-950 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+        {/* Decorative Islamic pattern overlay */}
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+        
+        {/* Glowing circle behind content */}
+        <div className="absolute w-64 h-64 sm:w-80 sm:h-80 bg-emerald-500/10 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col items-center text-center">
+          {/* Book icon */}
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-emerald-700/50 border-2 border-amber-400/30 flex items-center justify-center mb-6 sm:mb-8 shadow-lg shadow-emerald-900/50">
+            <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-amber-300" />
+          </div>
+          
+          {/* Title */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+            بَيَان الْقُرْآن
+          </h1>
+          <h2 className="text-xl sm:text-2xl font-semibold text-emerald-200 mb-1">Bayan ul Quran</h2>
+          <p className="text-emerald-300/80 text-sm sm:text-base mb-8 sm:mb-10">Dr. Israr Ahmad</p>
+          
+          {/* Enter button */}
+          <button
+            onClick={() => setEntered(true)}
+            className="group relative px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white text-lg font-semibold rounded-2xl shadow-lg shadow-emerald-900/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-800/40 active:scale-95"
+          >
+            <span className="flex items-center gap-2">
+              Enter App
+              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+            </span>
+          </button>
+          
+          {/* Donate link on landing */}
+          <a
+            href="https://www.sos.org.pk/PersonForm"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 flex items-center gap-2 text-emerald-400 hover:text-teal-300 text-sm transition-colors"
+          >
+            <Heart className="w-4 h-4" />
+            <span>Donate for Orphan</span>
+          </a>
+        </div>
+        
+        {/* Bottom decoration */}
+        <div className="absolute bottom-8 text-emerald-500/40 text-xs">
+ من الله توفيق
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <audio ref={audioRef} preload="auto"></audio>
@@ -456,7 +511,7 @@ export default function Home() {
               </div>
             </div>
             <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-              <Button size="sm" className="bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-sm gap-1.5">
+              <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white text-xs sm:text-sm gap-1.5">
                 <Heart className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Donate for Orphan</span>
                 <span className="sm:hidden">Donate</span>
