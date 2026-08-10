@@ -137,6 +137,8 @@ export default function Home() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Track visible ayah for dynamic metadata
   const [visibleAyah, setVisibleAyah] = useState<{ surah: number; ayahInSurah: number; globalAyahIndex: number } | null>(null);
+  // Base global ruku at the start of the current para (for para-relative ruku display)
+  const paraBaseRukuRef = useRef(0);
 
   // Restore state from localStorage on mount
   useEffect(() => {
@@ -551,6 +553,12 @@ export default function Home() {
     setParaSurahsData([]);
     setVisibleAyah(null);
 
+    // Compute the global ruku at the start of this para
+    const firstSurahInPara = para.surahs[0];
+    if (firstSurahInPara) {
+      paraBaseRukuRef.current = getGlobalRuku(firstSurahInPara.id, firstSurahInPara.fromAyah);
+    }
+
     // Fetch all surahs in this para in parallel
     const fetches = para.surahs.map(s =>
       fetch(`/api/quran?surah=${s.id}`)
@@ -880,8 +888,9 @@ export default function Home() {
                   const currentSurahNum = visibleAyah?.surah || currentSurahData.surah;
                   const currentAyahNum = visibleAyah?.ayahInSurah || (currentSurahData._fromAyah || 1);
                   
-                  // Compute dynamic ruku number based on visible ayah
+                  // Compute dynamic ruku number based on visible ayah (para-relative, starts at 1)
                   const globalRuku = getGlobalRuku(currentSurahNum, currentAyahNum);
+                  const paraRuku = globalRuku - paraBaseRukuRef.current + 1;
                   
                   // Compute dynamic hizb: first or second half of para based on scroll position
                   const totalAyahsInPara = paraSurahsData.reduce((sum, s) => sum + s.ayahs.length, 0);
@@ -892,7 +901,7 @@ export default function Home() {
                     <div className="border-b border-emerald-200 bg-emerald-50/50 px-2 sm:px-3 py-2 flex items-center justify-around gap-1.5 text-[10px] sm:text-xs" dir="rtl">
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">الرُّكُوعُ</span>
-                        <span className="font-bold text-emerald-800">{toArabicNumeral(globalRuku)}</span>
+                        <span className="font-bold text-emerald-800">{toArabicNumeral(paraRuku)}</span>
                       </div>
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">سورة</span>
