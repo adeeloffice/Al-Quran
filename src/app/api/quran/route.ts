@@ -24,12 +24,28 @@ export async function GET(request: NextRequest) {
     const arabicData = await arabicRes.json();
     const urduData = await urduRes.json();
 
-    const ayahs = arabicData.data.ayahs.map((a: any, i: number) => ({
-      number: a.number,
-      numberInSurah: a.numberInSurah,
-      arabic: a.text,
-      urdu: urduData.data.ayahs[i]?.text || "",
-    }));
+    const BISMILLAH = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+    const BISMILLAH_ALT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+
+    const ayahs = arabicData.data.ayahs.map((a: any, i: number) => {
+      let text = a.text;
+      // For surahs other than 1 and 9, ayah 1 contains Bismillah merged with the first real ayah.
+      // Strip the Bismillah portion so only the actual first ayah text remains.
+      if (a.numberInSurah === 1 && surah !== 1 && surah !== 9) {
+        // Try both Uthmani variants
+        if (text.startsWith(BISMILLAH)) {
+          text = text.slice(BISMILLAH.length).trim();
+        } else if (text.startsWith(BISMILLAH_ALT)) {
+          text = text.slice(BISMILLAH_ALT.length).trim();
+        }
+      }
+      return {
+        number: a.number,
+        numberInSurah: a.numberInSurah,
+        arabic: text,
+        urdu: urduData.data.ayahs[i]?.text || "",
+      };
+    });
 
     return NextResponse.json({
       surah,
