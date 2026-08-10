@@ -117,6 +117,7 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
+  const restoredRef = useRef(false);
 
   // Prayer times state
   const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
@@ -131,6 +132,67 @@ export default function Home() {
   const [quranData, setQuranData] = useState<QuranSurah | null>(null);
   const [quranLoading, setQuranLoading] = useState(false);
   const [quranError, setQuranError] = useState("");
+  const [quranRetryKey, setQuranRetryKey] = useState(0);
+
+  // Restore state from localStorage on mount
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const saved = localStorage.getItem("bayan-ul-quran-state");
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.entered) setEntered(true);
+        if (s.activeTab) setActiveTab(s.activeTab);
+        if (s.volume !== undefined) setVolume(s.volume);
+        if (s.isMuted !== undefined) setIsMuted(s.isMuted);
+        if (s.selectedSurahForReading) setSelectedSurahForReading(s.selectedSurahForReading);
+        if (s.selectedCity) setSelectedCity(s.selectedCity);
+        if (s.useGeo !== undefined) setUseGeo(s.useGeo);
+        if (s.trackUrl) {
+          const track: SurahAudio = { url: s.trackUrl, title: s.trackTitle || "" };
+          const surah = s.surahId ? surahs.find((su) => su.id === s.surahId) || null : null;
+          setCurrentTrack(track);
+          setCurrentSurah(surah);
+          setShowPlayer(true);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Save audio position periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (audioRef.current && audioRef.current.currentTime > 0) {
+        try { localStorage.setItem("bayan-audio-time", String(audioRef.current.currentTime)); } catch {}
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Save state to localStorage on changes
+  useEffect(() => {
+    const state: any = { entered, activeTab, volume, isMuted, selectedSurahForReading, selectedCity, useGeo };
+    if (currentTrack) {
+      state.trackUrl = currentTrack.url;
+      state.trackTitle = currentTrack.title;
+      if (currentSurah) state.surahId = currentSurah.id;
+    }
+    try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
+  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedSurahForReading, selectedCity, useGeo]);
+
+  // Restore audio position after track loads
+  useEffect(() => {
+    if (!audioRef.current || !currentTrack || isLoadingRef.current) return;
+    const savedTime = localStorage.getItem("bayan-audio-time");
+    if (savedTime) {
+      const t = parseFloat(savedTime);
+      if (t > 0 && isFinite(t)) {
+        audioRef.current.currentTime = t;
+        setCurrentTime(t);
+      }
+    }
+  }, [currentTrack]);
 
   const filteredSurahs = useMemo(
     () =>
@@ -418,8 +480,6 @@ export default function Home() {
       fetchPrayerTimes();
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
-
-  const [quranRetryKey, setQuranRetryKey] = useState(0);
 
   // Fetch Quran surah
   useEffect(() => {

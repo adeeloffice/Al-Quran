@@ -1,0 +1,527 @@
+   480→      fetchPrayerTimes();
+   481→    }
+   482→  }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
+   483→
+   484→  const [quranRetryKey, setQuranRetryKey] = useState(0);
+   485→
+   486→  // Fetch Quran surah
+   487→  useEffect(() => {
+   488→    if (activeTab !== "quran" || quranLoading) return;
+   489→    setQuranLoading(true);
+   490→    setQuranError("");
+   491→    fetch(`/api/quran?surah=${selectedSurahForReading}`)
+   492→      .then((r) => r.json())
+   493→      .then((data) => {
+   494→        if (data.error) {
+   495→          setQuranError(data.error);
+   496→          setQuranData(null);
+   497→        } else {
+   498→          setQuranData(data);
+   499→        }
+   500→      })
+   501→      .catch(() => {
+   502→        setQuranError("Failed to load. Check your internet connection.");
+   503→      })
+   504→      .finally(() => setQuranLoading(false));
+   505→  }, [activeTab, selectedSurahForReading, quranLoading, quranRetryKey]);
+   506→
+   507→  const progressPct = duration ? (currentTime / duration) * 100 : 0;
+   508→
+   509→  const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
+   510→    { key: "surahs", label: `Surahs (${surahs.length})`, icon: <List className="w-4 h-4" /> },
+   511→    { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
+   512→    { key: "intro", label: "Intro (4)", icon: <Headphones className="w-4 h-4" /> },
+   513→    { key: "asmaulhusna", label: "Asma ul Husna", icon: <Sparkles className="w-4 h-4" /> },
+   514→    { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
+   515→  ];
+   516→
+   517→  // Landing screen
+   518→  if (!entered) {
+   519→    return (
+   520→      <div className="min-h-screen bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-950 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+   521→        {/* Decorative Islamic pattern overlay */}
+   522→        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+   523→        
+   524→        {/* Glowing circle behind content */}
+   525→        <div className="absolute w-64 h-64 sm:w-80 sm:h-80 bg-emerald-500/10 rounded-full blur-3xl" />
+   526→        
+   527→        <div className="relative z-10 flex flex-col items-center text-center">
+   528→          {/* Book icon */}
+   529→          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-emerald-700/50 border-2 border-amber-400/30 flex items-center justify-center mb-6 sm:mb-8 shadow-lg shadow-emerald-900/50">
+   530→            <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-amber-300" />
+   531→          </div>
+   532→          
+   533→          {/* Title */}
+   534→          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+   535→            بَيَان الْقُرْآن
+   536→          </h1>
+   537→          <h2 className="text-xl sm:text-2xl font-semibold text-emerald-200 mb-1">Bayan ul Quran</h2>
+   538→          <p className="text-emerald-300/80 text-sm sm:text-base mb-8 sm:mb-10">Dr. Israr Ahmad</p>
+   539→          
+   540→          {/* Enter button */}
+   541→          <button
+   542→            onClick={() => setEntered(true)}
+   543→            className="group relative px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-semibold rounded-xl shadow-lg shadow-emerald-900/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-800/40 active:scale-95"
+   544→          >
+   545→            <span className="flex items-center gap-2">
+   546→              Login
+   547→              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+   548→            </span>
+   549→          </button>
+   550→        </div>
+   551→        
+   552→        {/* Bottom decoration */}
+   553→        <div className="absolute bottom-8 text-emerald-500/40 text-xs">
+   554→ من الله توفيق
+   555→        </div>
+   556→      </div>
+   557→    );
+   558→  }
+   559→
+   560→  return (
+   561→    <div className="min-h-screen flex flex-col bg-background">
+   562→      <audio ref={audioRef} preload="auto"></audio>
+   563→
+   564→      <header className="sticky top-0 z-50 bg-emerald-800 text-white shadow-lg">
+   565→        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-5">
+   566→          <div className="flex items-center justify-between">
+   567→            <div className="flex items-center gap-3">
+   568→              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-700 flex items-center justify-center">
+   569→                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
+   570→              </div>
+   571→              <div>
+   572→                <h1 className="text-lg sm:text-xl font-bold tracking-tight">Bayan ul Quran</h1>
+   573→                <p className="text-emerald-200 text-xs sm:text-sm">Dr. Israr Ahmad</p>
+   574→              </div>
+   575→            </div>
+   576→            <div className="flex items-center gap-2">
+   577→              <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer">
+   578→                <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-semibold">
+   579→                  <Heart className="w-3.5 h-3.5 fill-current" />
+   580→                  <span className="hidden sm:inline">Donate for Orphan</span>
+   581→                  <span className="sm:hidden">Donate</span>
+   582→                </Button>
+   583→              </a>
+   584→              <Button size="sm" variant="ghost" className="text-emerald-200 hover:text-white hover:bg-emerald-700 text-xs sm:text-sm" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
+   585→                Sign Out
+   586→              </Button>
+   587→            </div>
+   588→          </div>
+   589→        </div>
+   590→      </header>
+   591→
+   592→      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 sm:py-6 pb-44">
+   593→        {/* Search */}
+   594→        {(activeTab === "surahs" || activeTab === "intro" || activeTab === "asmaulhusna") && (
+   595→          <div className="relative mb-4 sm:mb-6">
+   596→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   597→            <Input
+   598→              placeholder={activeTab === "asmaulhusna" ? "Search 99 Names of Allah..." : "Search surah by name or number..."}
+   599→              className="pl-10 h-11 bg-white border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
+   600→              value={activeTab === "asmaulhusna" ? asmaSearch : searchQuery}
+   601→              onChange={(e) => (activeTab === "asmaulhusna" ? setAsmaSearch(e.target.value) : setSearchQuery(e.target.value))}
+   602→            />
+   603→          </div>
+   604→        )}
+   605→
+   606→        {/* Tabs */}
+   607→        <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1">
+   608→          {tabs.map((tab) => (
+   609→            <Button
+   610→              key={tab.key}
+   611→              variant={activeTab === tab.key ? "default" : "outline"}
+   612→              size="sm"
+   613→              onClick={() => setActiveTab(tab.key)}
+   614→              className={`whitespace-nowrap ${activeTab === tab.key ? "bg-emerald-700 hover:bg-emerald-800 text-white" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}`}
+   615→            >
+   616→              <span className="mr-1.5">{tab.icon}</span>
+   617→              {tab.label}
+   618→            </Button>
+   619→          ))}
+   620→        </div>
+   621→
+   622→        
+   623→        {activeTab === "surahs" && (
+   624→          <div className="space-y-2">
+   625→            {filteredSurahs.length === 0 && (
+   626→              <div className="text-center py-12 text-muted-foreground">
+   627→                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+   628→                <p>No surahs found</p>
+   629→              </div>
+   630→            )}
+   631→            {filteredSurahs.map((surah) => {
+   632→              const isCurrent = currentSurah?.id === surah.id;
+   633→              return (
+   634→                <div
+   635→                  key={surah.id}
+   636→                  className={`surah-card bg-white rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-emerald-100 hover:border-emerald-300"}`}
+   637→                  onClick={() => playTrack(surah.audio[0], surah)}
+   638→                >
+   639→                  <div className="flex items-center gap-3 sm:gap-4">
+   640→                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700"}`}>
+   641→                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <span className="text-sm sm:text-base font-semibold">{surah.id}</span>}
+   642→                    </div>
+   643→                    <div className="flex-1 min-w-0">
+   644→                      <div className="flex items-baseline gap-2">
+   645→                        <span className="font-semibold text-sm sm:text-base text-foreground truncate">{surah.nameEnglish}</span>
+   646→                        <span className="text-base sm:text-lg text-emerald-800 font-medium" dir="rtl">{surah.nameArabic}</span>
+   647→                      </div>
+   648→                      <div className="flex items-center gap-2 mt-0.5">
+   649→                        <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${surah.type === "meccan" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
+   650→                          {surah.type === "meccan" ? "Meccan" : "Medinan"}
+   651→                        </Badge>
+   652→                        <span className="text-xs text-muted-foreground">{surah.ayahCount} Ayahs</span>
+   653→                        {surah.audio.length > 1 && <span className="text-xs text-emerald-600 font-medium">{surah.audio.length} parts</span>}
+   654→                      </div>
+   655→                    </div>
+   656→                    <Button variant="ghost" size="icon" className={`shrink-0 rounded-full ${isCurrent ? "text-emerald-700 hover:bg-emerald-50" : "text-muted-foreground hover:text-emerald-700"}`} onClick={(e) => { e.stopPropagation(); if (isCurrent && isPlaying) togglePlay(); else playTrack(surah.audio[0], surah); }}>
+   657→                      {isCurrent && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+   658→                    </Button>
+   659→                  </div>
+   660→                  {surah.audio.length > 1 && isCurrent && (
+   661→                    <div className="mt-3 pt-3 border-t border-emerald-100">
+   662→                      <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Parts</p>
+   663→                      <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+   664→                        {surah.audio.map((part, idx) => (
+   665→                          <div key={idx} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${currentTrack?.url === part.url ? "bg-emerald-100 text-emerald-800 font-medium" : "hover:bg-emerald-50 text-foreground"}`} onClick={(e) => { e.stopPropagation(); playTrack(part, surah); }}>
+   666→                            {currentTrack?.url === part.url && isPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <Play className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+   667→                            <span>{part.title}</span>
+   668→                          </div>
+   669→                        ))}
+   670→                      </div>
+   671→                    </div>
+   672→                  )}
+   673→                </div>
+   674→              );
+   675→            })}
+   676→          </div>
+   677→        )}
+   678→
+   679→        
+   680→        {activeTab === "quran" && (
+   681→          <div>
+   682→            <div className="flex gap-3 mb-4">
+   683→              <select
+   684→                className="flex-1 h-11 bg-white border border-emerald-200 rounded-xl px-3 text-sm focus:outline-none focus:border-emerald-500"
+   685→                value={selectedSurahForReading}
+   686→                onChange={(e) => setSelectedSurahForReading(Number(e.target.value))}
+   687→              >
+   688→                {surahs.map((s) => (
+   689→                  <option key={s.id} value={s.id}>
+   690→                    {s.id}. {s.nameEnglish} ({s.nameArabic}) - {s.ayahCount} Ayahs
+   691→                  </option>
+   692→                ))}
+   693→              </select>
+   694→            </div>
+   695→
+   696→            {/* Quick Para Navigation */}
+   697→            <div className="mb-4">
+   698→              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Jump to Para</p>
+   699→              <div className="flex flex-wrap gap-1.5">
+   700→                {paras.map((p) => (
+   701→                  <button
+   702→                    key={p.id}
+   703→                    className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-200 hover:bg-emerald-50 hover:border-emerald-400 transition-colors text-emerald-800 font-medium"
+   704→                    onClick={() => setSelectedSurahForReading(p.fromSurah)}
+   705→                  >
+   706→                    {p.id}
+   707→                  </button>
+   708→                ))}
+   709→              </div>
+   710→            </div>
+   711→
+   712→            {quranLoading && (
+   713→              <div className="flex flex-col items-center py-12 text-muted-foreground">
+   714→                <Loader2 className="w-8 h-8 animate-spin mb-2 text-emerald-600" />
+   715→                <p className="text-sm">Loading Surah...</p>
+   716→              </div>
+   717→            )}
+   718→
+   719→            {quranError && !quranLoading && (
+   720→              <div className="text-center py-12">
+   721→                <p className="text-sm text-red-500 mb-3">{quranError}</p>
+   722→                <Button onClick={() => setQuranRetryKey((k) => k + 1)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">
+   723→                  Try Again
+   724→                </Button>
+   725→              </div>
+   726→            )}
+   727→
+   728→            {quranData && !quranLoading && (
+   729→              <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
+   730→                <div className="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex items-center justify-between">
+   731→                  <div>
+   732→                    <h3 className="font-bold text-emerald-800" dir="rtl">{quranData.nameArabic}</h3>
+   733→                    <p className="text-xs text-muted-foreground">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
+   734→                  </div>
+   735→                  <div className="flex gap-1">
+   736→                    {selectedSurahForReading > 1 && (
+   737→                      <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700 h-8" onClick={() => setSelectedSurahForReading((prev) => prev - 1)}>
+   738→                        Prev
+   739→                      </Button>
+   740→                    )}
+   741→                    {selectedSurahForReading < 114 && (
+   742→                      <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700 h-8" onClick={() => setSelectedSurahForReading((prev) => prev + 1)}>
+   743→                        Next
+   744→                      </Button>
+   745→                    )}
+   746→                  </div>
+   747→                </div>
+   748→                <div className="p-4 sm:p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+   749→                  {quranData.ayahs.map((ayah) => (
+   750→                    <div key={ayah.number} className="flex gap-3 sm:gap-4">
+   751→                      <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 text-xs font-semibold mt-1">
+   752→                        {ayah.numberInSurah}
+   753→                      </div>
+   754→                      <div className="flex-1 min-w-0">
+   755→                        <p className="text-right text-lg sm:text-xl leading-loose text-foreground font-medium" dir="rtl" lang="ar">
+   756→                          {ayah.arabic}
+   757→                        </p>
+   758→                        <p className="text-right text-sm leading-relaxed text-emerald-900/70 mt-1" dir="rtl" lang="ur">
+   759→                          {ayah.urdu}
+   760→                        </p>
+   761→                      </div>
+   762→                    </div>
+   763→                  ))}
+   764→                </div>
+   765→              </div>
+   766→            )}
+   767→          </div>
+   768→        )}
+   769→
+   770→        
+   771→        {activeTab === "intro" && (
+   772→          <div className="space-y-2">
+   773→            {introductions.map((intro, idx) => {
+   774→              const isCurrent = currentTrack?.url === intro.url && !currentSurah;
+   775→              return (
+   776→                <div key={idx} className={`surah-card bg-white rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-emerald-100 hover:border-emerald-300"}`} onClick={() => playTrack(intro)}>
+   777→                  <div className="flex items-center gap-3 sm:gap-4">
+   778→                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700"}`}>
+   779→                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
+   780→                    </div>
+   781→                    <div className="flex-1 min-w-0">
+   782→                      <p className="font-semibold text-sm sm:text-base truncate">{intro.title}</p>
+   783→                      <p className="text-xs text-muted-foreground mt-0.5">Introduction to Bayan ul Quran</p>
+   784→                    </div>
+   785→                    <Button variant="ghost" size="icon" className={`shrink-0 rounded-full ${isCurrent ? "text-emerald-700" : "text-muted-foreground"}`} onClick={(e) => { e.stopPropagation(); if (isCurrent && isPlaying) togglePlay(); else playTrack(intro); }}>
+   786→                      {isCurrent && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+   787→                    </Button>
+   788→                  </div>
+   789→                </div>
+   790→              );
+   791→            })}
+   792→          </div>
+   793→        )}
+   794→
+   795→        
+   796→        {activeTab === "asmaulhusna" && (
+   797→          <div>
+   798→            <div className="text-center mb-4">
+   799→              <h2 className="text-2xl sm:text-3xl font-bold text-emerald-800" dir="rtl">أسماء الله الحسنى</h2>
+   800→              <p className="text-sm text-muted-foreground mt-1">The 99 Beautiful Names of Allah</p>
+   801→            </div>
+   802→
+   803→            
+   804→            <div className="bg-white rounded-xl border border-emerald-100 p-3 mb-6">
+   805→              <div className="aspect-video w-full rounded-lg overflow-hidden">
+   806→                <iframe
+   807→                  className="w-full h-full"
+   808→                  src="https://www.youtube.com/embed/VamZ-Jr8o5o?rel=0"
+   809→                  title="Asma ul Husna - 99 Names of Allah"
+   810→                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+   811→                  allowFullScreen
+   812→                />
+   813→              </div>
+   814→              <p className="text-xs text-center text-muted-foreground mt-2">Listen to the 99 Names of Allah</p>
+   815→            </div>
+   816→
+   817→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+   818→              {filteredAsma.map((name) => (
+   819→                <div key={name.id} className="bg-white rounded-xl border border-emerald-100 p-4 hover:border-emerald-300 transition-colors">
+   820→                  <div className="flex items-start gap-3">
+   821→                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 text-sm font-semibold">{name.id}</div>
+   822→                    <div className="min-w-0">
+   823→                      <p className="text-xl sm:text-2xl text-emerald-800 font-medium" dir="rtl">{name.arabic}</p>
+   824→                      <p className="font-semibold text-sm text-foreground mt-1">{name.transliteration}</p>
+   825→                      <p className="text-xs text-muted-foreground mt-0.5">{name.meaning}</p>
+   826→                    </div>
+   827→                  </div>
+   828→                </div>
+   829→              ))}
+   830→            </div>
+   831→            {filteredAsma.length === 0 && (
+   832→              <div className="text-center py-12 text-muted-foreground">
+   833→                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+   834→                <p>No names found</p>
+   835→              </div>
+   836→            )}
+   837→          </div>
+   838→        )}
+   839→
+   840→        
+   841→        {activeTab === "prayer" && (
+   842→          <div className="space-y-6">
+   843→            
+   844→            <div className="bg-white rounded-xl border border-emerald-100 p-4">
+   845→              <div className="flex items-center gap-2 mb-3">
+   846→                <MapPin className="w-4 h-4 text-emerald-700" />
+   847→                <span className="text-sm font-medium">Select Location</span>
+   848→              </div>
+   849→              <div className="flex items-center gap-3 mb-3">
+   850→                <label className="flex items-center gap-2 cursor-pointer">
+   851→                  <input
+   852→                    type="checkbox"
+   853→                    className="accent-emerald-600 w-4 h-4"
+   854→                    checked={useGeo}
+   855→                    onChange={(e) => { setUseGeo(e.target.checked); if (e.target.checked) { setPrayerData(null); } else { setPrayerData(null); } }}
+   856→                  />
+   857→                  <span className="text-sm">Use my current location</span>
+   858→                </label>
+   859→              </div>
+   860→              {!useGeo && (
+   861→                <div className="flex flex-wrap gap-1.5">
+   862→                  {CITY_OPTIONS.map((c) => (
+   863→                    <button
+   864→                      key={c.key}
+   865→                      className={`px-3 py-1.5 text-xs rounded-lg border transition-colors font-medium ${selectedCity === c.key ? "bg-emerald-700 text-white border-emerald-700" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}`}
+   866→                      onClick={() => { setSelectedCity(c.key); setPrayerData(null); }}
+   867→                    >
+   868→                      {c.label}
+   869→                    </button>
+   870→                  ))}
+   871→                </div>
+   872→              )}
+   873→            </div>
+   874→
+   875→            
+   876→            <div className="bg-white rounded-xl border border-emerald-100 p-6">
+   877→              <div className="flex items-center gap-2 mb-4">
+   878→                <Navigation className="w-5 h-5 text-emerald-700" />
+   879→                <h3 className="text-lg font-semibold text-foreground">Qibla Direction</h3>
+   880→              </div>
+   881→              {qiblaAngle !== null ? (
+   882→                <div className="flex flex-col items-center">
+   883→                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-emerald-200 relative bg-gradient-to-b from-emerald-50 to-white mb-3">
+   884→                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-bold text-emerald-600">N</div>
+   885→                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ transform: `translate(-50%, -50%) rotate(${qiblaAngle}deg)` }}>
+   886→                      <div className="w-1 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full -translate-y-1/2 mx-auto relative">
+   887→                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-amber-500" />
+   888→                      </div>
+   889→                    </div>
+   890→                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-700" />
+   891→                  </div>
+   892→                  <p className="text-sm text-center text-muted-foreground">
+   893→                    Qibla: <span className="font-semibold text-emerald-700">{Math.round(qiblaAngle)}deg</span> from North
+   894→                  </p>
+   895→                </div>
+   896→              ) : (
+   897→                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+   898→                  <MapPin className="w-5 h-5 mr-2 opacity-50" />
+   899→                  Select a location to see Qibla direction
+   900→                </div>
+   901→              )}
+   902→            </div>
+   903→
+   904→            
+   905→            <div className="bg-white rounded-xl border border-emerald-100 p-6">
+   906→              <div className="flex items-center justify-between mb-4">
+   907→                <div className="flex items-center gap-2">
+   908→                  <Clock className="w-5 h-5 text-emerald-700" />
+   909→                  <h3 className="text-lg font-semibold text-foreground">Prayer Times</h3>
+   910→                </div>
+   911→                <Button variant="outline" size="sm" onClick={fetchPrayerTimes} disabled={prayerLoading} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+   912→                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${prayerLoading ? "animate-spin" : ""}`} />
+   913→                  Refresh
+   914→                </Button>
+   915→              </div>
+   916→
+   917→              {prayerLoading && (
+   918→                <div className="flex flex-col items-center py-8 text-muted-foreground">
+   919→                  <Loader2 className="w-8 h-8 animate-spin mb-2 text-emerald-600" />
+   920→                  <p className="text-sm">Loading prayer times...</p>
+   921→                </div>
+   922→              )}
+   923→
+   924→              {prayerError && !prayerLoading && (
+   925→                <div className="text-center py-8">
+   926→                  <p className="text-sm text-red-500 mb-3">{prayerError}</p>
+   927→                  <Button onClick={fetchPrayerTimes} size="sm" className="bg-emerald-700 hover:bg-emerald-800">Try Again</Button>
+   928→                </div>
+   929→              )}
+   930→
+   931→              {prayerData && !prayerLoading && (
+   932→                <>
+   933→                  <div className="flex flex-wrap items-center gap-2 mb-4 text-xs text-muted-foreground">
+   934→                    <MapPin className="w-3.5 h-3.5" />
+   935→                    <span>{prayerData.meta?.locationName || prayerData.meta?.timezone}</span>
+   936→                    <span className="mx-1">|</span>
+   937→                    <span>{prayerData.date?.readable}</span>
+   938→                    <span className="mx-1">|</span>
+   939→                    <span>{prayerData.date?.hijri?.date} {prayerData.date?.hijri?.month?.en} {prayerData.date?.hijri?.year} AH</span>
+   940→                  </div>
+   941→                  <div className="space-y-2">
+   942→                    {prayerTimes.map((p) => (
+   943→                      <div key={p.name} className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${p.isNext ? "bg-emerald-100 border border-emerald-300" : "bg-emerald-50/50"}`}>
+   944→                        <div className="flex items-center gap-3">
+   945→                          {p.isNext && <div className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />}
+   946→                          <span className={`font-medium text-sm ${p.isNext ? "text-emerald-800" : "text-foreground"}`}>{p.name}</span>
+   947→                          {p.isNext && <Badge className="bg-emerald-600 text-white text-[10px] px-1.5">Next</Badge>}
+   948→                        </div>
+   949→                        <span className={`text-sm tabular-nums font-medium ${p.isNext ? "text-emerald-700" : "text-muted-foreground"}`}>{formatTime12(p.time)}</span>
+   950→                      </div>
+   951→                    ))}
+   952→                  </div>
+   953→                </>
+   954→              )}
+   955→            </div>
+   956→          </div>
+   957→        )}
+   958→      </main>
+   959→
+   960→      
+   961→      {showPlayer && currentTrack && (
+   962→        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-emerald-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+   963→          <div ref={progressRef} className="h-1.5 bg-emerald-100 cursor-pointer group" onClick={seekTo}>
+   964→            <div className="h-full bg-emerald-600 transition-all duration-200 group-hover:bg-emerald-500 relative" style={{ width: `${progressPct}%` }}>
+   965→              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-emerald-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+   966→            </div>
+   967→          </div>
+   968→          <div className="max-w-4xl mx-auto px-4 py-3">
+   969→            <div className="flex items-center gap-3">
+   970→              <div className="flex-1 min-w-0">
+   971→                <p className="font-semibold text-sm truncate text-foreground">{currentTrack.title}</p>
+   972→                <p className="text-xs text-muted-foreground truncate">{currentSurah ? `Surah ${currentSurah.id} - ${currentSurah.nameEnglish}` : "Introduction"}</p>
+   973→              </div>
+   974→              <div className="flex items-center gap-1">
+   975→                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={() => seekBy(-10)} title="Back 10s">
+   976→                  <Rewind className="w-4 h-4" />
+   977→                </Button>
+   978→                <Button variant="default" size="icon" className="h-10 w-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white" onClick={togglePlay}>
+   979→                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+   980→                </Button>
+   981→                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={() => seekBy(10)} title="Forward 10s">
+   982→                  <FastForward className="w-4 h-4" />
+   983→                </Button>
+   984→              </div>
+   985→              <div className="hidden sm:flex items-center gap-3">
+   986→                <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
+   987→                <span className="text-xs text-muted-foreground">/</span>
+   988→                <span className="text-xs text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
+   989→                <div className="flex items-center gap-1.5">
+   990→                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={toggleMute}>
+   991→                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+   992→                  </Button>
+   993→                  <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={changeVolume} className="w-20 h-1 accent-emerald-600 cursor-pointer" />
+   994→                </div>
+   995→              </div>
+   996→              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 shrink-0" onClick={closePlayer} aria-label="Close player">
+   997→                <X className="w-4 h-4" />
+   998→              </Button>
+   999→            </div>
+  1000→          </div>
+  1001→        </div>
+  1002→      )}
+  1003→    </div>
+  1004→  );
+  1005→}
+  1006→

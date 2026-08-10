@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import quranData from "@/lib/quran-data.json";
+import { readFileSync } from "fs";
+import path from "path";
 
 export async function GET(request: NextRequest) {
-  const surah = parseInt(request.nextUrl.searchParams.get("surah") || "1", 10);
-  const data = quranData.find((s: any) => s.surah === surah);
+  const surah = request.nextUrl.searchParams.get("surah") || "1";
 
-  if (!data) {
+  try {
+    const filePath = path.join(process.cwd(), "src", "lib", "quran-surahs", `surah-${surah}.json`);
+    const data = JSON.parse(readFileSync(filePath, "utf-8"));
+    return NextResponse.json(data);
+  } catch {
     return NextResponse.json({ error: "Surah not found" }, { status: 404 });
   }
-
-  return NextResponse.json(data);
 }
