@@ -485,13 +485,13 @@ export default function Home() {
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
 
-  // Fetch Quran surah — fetches static JSON from /quran-surahs/ (no API route needed, works reliably on Vercel)
+  // Fetch Quran surah — from API (real Urdu Junagarhi translation from Quran.com, with local fallback)
   useEffect(() => {
     if (activeTab !== "quran" || quranLoadingRef.current) return;
     quranLoadingRef.current = true;
     setQuranLoading(true);
     setQuranError("");
-    fetch(`/quran-surahs/surah-${selectedSurahForReading}.json`)
+    fetch(`/api/quran?surah=${selectedSurahForReading}`)
       .then((r) => {
         if (!r.ok) throw new Error("Not found");
         return r.json();
@@ -735,39 +735,49 @@ export default function Home() {
             )}
 
             {quranData && !quranLoading && (
-              <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
-                <div className="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-emerald-800" dir="rtl">{quranData.nameArabic}</h3>
-                    <p className="text-xs text-muted-foreground">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
+              <div className="bg-[#FFFDF5] rounded-xl border border-amber-200/60 overflow-hidden shadow-sm">
+                {/* Surah Header */}
+                <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <h3 className="font-bold text-white text-lg" dir="rtl">{quranData.nameArabic}</h3>
+                      <p className="text-emerald-200 text-xs">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
+                    </div>
                   </div>
                   <div className="flex gap-1">
                     {selectedSurahForReading > 1 && (
-                      <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700 h-8" onClick={() => setSelectedSurahForReading((prev) => prev - 1)}>
+                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedSurahForReading((prev) => prev - 1)}>
                         Prev
                       </Button>
                     )}
                     {selectedSurahForReading < 114 && (
-                      <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700 h-8" onClick={() => setSelectedSurahForReading((prev) => prev + 1)}>
+                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedSurahForReading((prev) => prev + 1)}>
                         Next
                       </Button>
                     )}
                   </div>
                 </div>
-                <div className="p-4 sm:p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+
+                {/* Bismillah */}
+                {quranData.surah !== 9 && quranData.surah !== 1 && (
+                  <div className="text-center py-4 border-b border-amber-200/40">
+                    <p className="text-2xl text-emerald-900 font-medium" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+                  </div>
+                )}
+
+                {/* Ayahs - Traditional Mushaf Style */}
+                <div className="p-4 sm:p-6 space-y-1 max-h-[65vh] overflow-y-auto custom-scrollbar" style={{ lineHeight: "2.2" }}>
                   {quranData.ayahs.map((ayah) => (
-                    <div key={ayah.number} className="flex gap-3 sm:gap-4">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 text-xs font-semibold mt-1">
-                        {ayah.numberInSurah}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-right text-lg sm:text-xl leading-loose text-foreground font-medium" dir="rtl" lang="ar">
-                          {ayah.arabic}
-                        </p>
-                        <p className="text-right text-sm leading-relaxed text-emerald-900/70 mt-1" dir="rtl" lang="ur">
+                    <div key={ayah.number} dir="rtl" className="group">
+                      <span className="inline">
+                        <span className="text-xl sm:text-2xl text-gray-900 font-medium" lang="ar">{ayah.arabic}</span>
+                        <span className="inline-flex items-center justify-center w-7 h-7 mx-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold align-middle">{ayah.numberInSurah}</span>
+                      </span>
+                      {ayah.urdu && (
+                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mt-0.5" lang="ur" style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}>
                           {ayah.urdu}
                         </p>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -29,6 +29,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#065f46" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className={`${geistSans.variable} antialiased`}>
         <ServiceWorkerRegistrar />
