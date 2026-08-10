@@ -116,6 +116,8 @@ export default function Home() {
   const [asmaSearch, setAsmaSearch] = useState("");
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const seekBarRef = useRef<HTMLInputElement>(null);
+  const isSeekingRef = useRef(false);
   const isLoadingRef = useRef(false);
   const restoredRef = useRef(false);
 
@@ -307,6 +309,14 @@ export default function Home() {
     setCurrentTime(newTime);
   }, [duration]);
 
+  const seekFromBar = useCallback((val: string) => {
+    if (!audioRef.current || !duration) return;
+    const newTime = parseFloat(val);
+    isLoadingRef.current = true;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, [duration]);
+
   const toggleMute = useCallback(() => {
     if (!audioRef.current) return;
     if (isMuted) {
@@ -365,7 +375,7 @@ export default function Home() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onTime = () => setCurrentTime(audio.currentTime);
+    const onTime = () => { if (!isSeekingRef.current) setCurrentTime(audio.currentTime); };
     const onDur = () => setDuration(audio.duration);
     const onEnd = () => {
       setIsPlaying(false);
@@ -483,21 +493,32 @@ export default function Home() {
     }
   }, []);
 
-  // Device orientation for Qibla compass
+  // Device orientation for Qibla compass (with smoothing)
+  const smoothHeadingRef = useRef<number | null>(null);
   useEffect(() => {
     // On iOS, don't set up listener until permission is granted
     if (typeof (DeviceOrientationEvent as any).requestPermission === "function" && hasGyro === null) {
-      // Wait for user to trigger permission via button tap
       return;
     }
     const onOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha !== null) {
-        setDeviceHeading(e.alpha);
+        // Low-pass filter: smooth out jitter
+        const raw = e.alpha;
+        if (smoothHeadingRef.current === null) {
+          smoothHeadingRef.current = raw;
+        } else {
+          const prev = smoothHeadingRef.current;
+          // Handle wrap-around (e.g., 359 -> 1)
+          let diff = raw - prev;
+          if (diff > 180) diff -= 360;
+          if (diff < -180) diff += 360;
+          smoothHeadingRef.current = ((prev + diff * 0.15) % 360 + 360) % 360;
+        }
+        setDeviceHeading(smoothHeadingRef.current);
         setHasGyro(true);
       }
     };
     window.addEventListener("deviceorientation", onOrientation);
-    // Check after 1.5s if we got any reading
     const timer = setTimeout(() => {
       setHasGyro((prev) => (prev === null ? false : prev));
     }, 1500);
@@ -1019,10 +1040,23 @@ export default function Home() {
       
       {showPlayer && currentTrack && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-emerald-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-          <div ref={progressRef} className="h-1.5 bg-emerald-100 cursor-pointer group" onClick={seekTo}>
-            <div className="h-full bg-emerald-600 transition-all duration-200 group-hover:bg-emerald-500 relative" style={{ width: `${progressPct}%` }}>
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-emerald-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
+          {/* Touch-friendly seekbar - uses native range input for reliable mobile dragging */}
+          <div className="px-2 pt-2">
+            <input
+              ref={seekBarRef}
+              type="range"
+              min="0"
+              max={duration || 0}
+              step="0.5"
+              value={currentTime}
+              onChange={(e) => seekFromBar(e.target.value)}
+              onMouseDown={() => { isSeekingRef.current = true; }}
+              onMouseUp={() => { isSeekingRef.current = false; }}
+              onTouchStart={() => { isSeekingRef.current = true; }}
+              onTouchEnd={() => { isSeekingRef.current = false; }}
+              className="w-full h-2 accent-emerald-600 cursor-pointer"
+              style={{ WebkitAppearance: 'none', appearance: 'none', background: `linear-gradient(to right, #059669 ${progressPct}%, #d1fae5 ${progressPct}%)`, borderRadius: '4px' }}
+            />
           </div>
           <div className="max-w-4xl mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
