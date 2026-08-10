@@ -639,7 +639,7 @@ export default function Home() {
                   <span className="sm:hidden">Donate</span>
                 </Button>
               </a>
-              <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm gap-1.5 font-bold shadow-md hover:shadow-lg" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
+              <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-bold shadow-md hover:shadow-lg" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Sign Out</span>
                 <span className="sm:hidden">Out</span>
