@@ -1,0 +1,1065 @@
+     1→"use client";
+     2→
+     3→import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+     4→import { surahs, introductions, type Surah, type SurahAudio } from "@/lib/surah-data";
+     5→import { asmaUlHusna } from "@/lib/asma-ul-husna";
+     6→import { paras } from "@/lib/quran-paras";
+     7→import { Input } from "@/components/ui/input";
+     8→import { Badge } from "@/components/ui/badge";
+     9→import { Button } from "@/components/ui/button";
+    10→import {
+    11→  Search,
+    12→  Play,
+    13→  Pause,
+    14→  SkipBack,
+    15→  SkipForward,
+    16→  Rewind,
+    17→  FastForward,
+    18→  Volume2,
+    19→  VolumeX,
+    20→  X,
+    21→  BookOpen,
+    22→  Headphones,
+    23→  List,
+    24→  Sparkles,
+    25→  Compass,
+    26→  Clock,
+    27→  MapPin,
+    28→  RefreshCw,
+    29→  Loader2,
+    30→  Navigation,
+    31→  Heart,
+    32→  ChevronRight,
+    33→  BookText,
+    34→} from "lucide-react";
+    35→
+    36→function formatTime(seconds: number): string {
+    37→  if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
+    38→  const m = Math.floor(seconds / 60);
+    39→  const s = Math.floor(seconds % 60);
+    40→  return `${m}:${s.toString().padStart(2, "0")}`;
+    41→}
+    42→
+    43→function formatTime12(time24: string): string {
+    44→  const [h, m] = time24.split(":").map(Number);
+    45→  const ampm = h >= 12 ? "PM" : "AM";
+    46→  const h12 = h % 12 || 12;
+    47→  return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
+    48→}
+    49→
+    50→function proxyUrl(originalUrl: string): string {
+    51→  return `/api/audio?url=${encodeURIComponent(originalUrl)}`;
+    52→}
+    53→
+    54→type TabType = "surahs" | "intro" | "asmaulhusna" | "prayer" | "quran";
+    55→
+    56→interface PrayerTime {
+    57→  name: string;
+    58→  time: string;
+    59→  isNext?: boolean;
+    60→}
+    61→
+    62→interface PrayerData {
+    63→  timings: Record<string, string>;
+    64→  date: {
+    65→    readable: string;
+    66→    hijri: { date: string; month: { en: string }; year: string };
+    67→  };
+    68→  meta: { latitude: number; longitude: number; timezone: string; locationName?: string };
+    69→}
+    70→
+    71→interface QuranAyah {
+    72→  number: number;
+    73→  numberInSurah: number;
+    74→  arabic: string;
+    75→  urdu: string;
+    76→}
+    77→
+    78→interface QuranSurah {
+    79→  surah: number;
+    80→  name: string;
+    81→  nameArabic: string;
+    82→  totalAyahs: number;
+    83→  ayahs: QuranAyah[];
+    84→}
+    85→
+    86→const CITY_OPTIONS = [
+    87→  { key: "karachi", label: "Karachi" },
+    88→  { key: "lahore", label: "Lahore" },
+    89→  { key: "islamabad", label: "Islamabad" },
+    90→  { key: "makkah", label: "Makkah" },
+    91→  { key: "madinah", label: "Madinah" },
+    92→  { key: "riyadh", label: "Riyadh" },
+    93→  { key: "dubai", label: "Dubai" },
+    94→  { key: "istanbul", label: "Istanbul" },
+    95→  { key: "london", label: "London" },
+    96→  { key: "new_york", label: "New York" },
+    97→  { key: "cairo", label: "Cairo" },
+    98→  { key: "dhaka", label: "Dhaka" },
+    99→  { key: "jakarta", label: "Jakarta" },
+   100→  { key: "kuala_lumpur", label: "Kuala Lumpur" },
+   101→  { key: "jeddah", label: "Jeddah" },
+   102→];
+   103→
+   104→export default function Home() {
+   105→  const [entered, setEntered] = useState(false);
+   106→  const [searchQuery, setSearchQuery] = useState("");
+   107→  const [currentTrack, setCurrentTrack] = useState<SurahAudio | null>(null);
+   108→  const [currentSurah, setCurrentSurah] = useState<Surah | null>(null);
+   109→  const [isPlaying, setIsPlaying] = useState(false);
+   110→  const [currentTime, setCurrentTime] = useState(0);
+   111→  const [duration, setDuration] = useState(0);
+   112→  const [volume, setVolume] = useState(0.8);
+   113→  const [isMuted, setIsMuted] = useState(false);
+   114→  const [showPlayer, setShowPlayer] = useState(false);
+   115→  const [activeTab, setActiveTab] = useState<TabType>("surahs");
+   116→  const [asmaSearch, setAsmaSearch] = useState("");
+   117→  const audioRef = useRef<HTMLAudioElement>(null);
+   118→  const progressRef = useRef<HTMLDivElement>(null);
+   119→  const isLoadingRef = useRef(false);
+   120→  const restoredRef = useRef(false);
+   121→
+   122→  // Prayer times state
+   123→  const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
+   124→  const [prayerLoading, setPrayerLoading] = useState(false);
+   125→  const [prayerError, setPrayerError] = useState("");
+   126→  const [selectedCity, setSelectedCity] = useState("karachi");
+   127→  const [useGeo, setUseGeo] = useState(true);
+   128→  const [qiblaAngle, setQiblaAngle] = useState<number | null>(null);
+   129→  const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
+   130→  const [hasGyro, setHasGyro] = useState<boolean | null>(null);
+   131→
+   132→  // Quran reading state
+   133→  const [selectedSurahForReading, setSelectedSurahForReading] = useState<number>(1);
+   134→  const [quranData, setQuranData] = useState<QuranSurah | null>(null);
+   135→  const [quranLoading, setQuranLoading] = useState(false);
+   136→  const [quranError, setQuranError] = useState("");
+   137→  const [quranRetryKey, setQuranRetryKey] = useState(0);
+   138→  const quranLoadingRef = useRef(false);
+   139→
+   140→  // Restore state from localStorage on mount
+   141→  useEffect(() => {
+   142→    if (restoredRef.current) return;
+   143→    restoredRef.current = true;
+   144→    try {
+   145→      const saved = localStorage.getItem("bayan-ul-quran-state");
+   146→      if (saved) {
+   147→        const s = JSON.parse(saved);
+   148→        if (s.entered) setEntered(true);
+   149→        if (s.activeTab) setActiveTab(s.activeTab);
+   150→        if (s.volume !== undefined) setVolume(s.volume);
+   151→        if (s.isMuted !== undefined) setIsMuted(s.isMuted);
+   152→        if (s.selectedSurahForReading) setSelectedSurahForReading(s.selectedSurahForReading);
+   153→        if (s.selectedCity) setSelectedCity(s.selectedCity);
+   154→        if (s.useGeo !== undefined) setUseGeo(s.useGeo);
+   155→        if (s.trackUrl) {
+   156→          const track: SurahAudio = { url: s.trackUrl, title: s.trackTitle || "" };
+   157→          const surah = s.surahId ? surahs.find((su) => su.id === s.surahId) || null : null;
+   158→          setCurrentTrack(track);
+   159→          setCurrentSurah(surah);
+   160→          setShowPlayer(true);
+   161→        }
+   162→      }
+   163→    } catch {}
+   164→  }, []);
+   165→
+   166→  // Save audio position periodically (with track URL so we only restore for the same track)
+   167→  useEffect(() => {
+   168→    const interval = setInterval(() => {
+   169→      if (audioRef.current && audioRef.current.currentTime > 0 && currentTrack) {
+   170→        try { localStorage.setItem("bayan-audio-pos", JSON.stringify({ url: currentTrack.url, time: audioRef.current.currentTime })); } catch {}
+   171→      }
+   172→    }, 2000);
+   173→    return () => clearInterval(interval);
+   174→  }, [currentTrack]);
+   175→
+   176→  // Save state to localStorage on changes
+   177→  useEffect(() => {
+   178→    const state: any = { entered, activeTab, volume, isMuted, selectedSurahForReading, selectedCity, useGeo };
+   179→    if (currentTrack) {
+   180→      state.trackUrl = currentTrack.url;
+   181→      state.trackTitle = currentTrack.title;
+   182→      if (currentSurah) state.surahId = currentSurah.id;
+   183→    }
+   184→    try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
+   185→  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedSurahForReading, selectedCity, useGeo]);
+   186→
+   187→  // Restore audio position after track loads (only if same track URL)
+   188→  useEffect(() => {
+   189→    if (!audioRef.current || !currentTrack || isLoadingRef.current) return;
+   190→    try {
+   191→      const saved = localStorage.getItem("bayan-audio-pos");
+   192→      if (saved) {
+   193→        const { url, time } = JSON.parse(saved);
+   194→        if (url === currentTrack.url && time > 0 && isFinite(time)) {
+   195→          audioRef.current.currentTime = time;
+   196→          setCurrentTime(time);
+   197→        }
+   198→      }
+   199→    } catch {}
+   200→  }, [currentTrack]);
+   201→
+   202→  const filteredSurahs = useMemo(
+   203→    () =>
+   204→      surahs.filter(
+   205→        (s) =>
+   206→          s.nameEnglish.toLowerCase().includes(searchQuery.toLowerCase()) ||
+   207→          s.nameUrdu.includes(searchQuery) ||
+   208→          s.number.includes(searchQuery) ||
+   209→          s.nameArabic.includes(searchQuery)
+   210→      ),
+   211→    [searchQuery]
+   212→  );
+   213→
+   214→  const filteredAsma = useMemo(
+   215→    () =>
+   216→      asmaUlHusna.filter(
+   217→        (n) =>
+   218→          n.transliteration.toLowerCase().includes(asmaSearch.toLowerCase()) ||
+   219→          n.meaning.toLowerCase().includes(asmaSearch.toLowerCase()) ||
+   220→          n.arabic.includes(asmaSearch) ||
+   221→          n.id.toString().includes(asmaSearch)
+   222→      ),
+   223→    [asmaSearch]
+   224→  );
+   225→
+   226→  const prayerTimes: PrayerTime[] = useMemo(() => {
+   227→    if (!prayerData) return [];
+   228→    const order = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
+   229→    const now = new Date();
+   230→    const nowMins = now.getHours() * 60 + now.getMinutes();
+   231→    let nextFound = false;
+   232→    return order
+   233→      .filter((n) => prayerData.timings[n])
+   234→      .map((n) => {
+   235→        const t = prayerData.timings[n].split(" ")[0];
+   236→        const [h, m] = t.split(":").map(Number);
+   237→        const pMins = h * 60 + m;
+   238→        const isNext = !nextFound && pMins > nowMins;
+   239→        if (isNext) nextFound = true;
+   240→        return { name: n, time: t, isNext };
+   241→      });
+   242→  }, [prayerData]);
+   243→
+   244→  const playTrack = useCallback((track: SurahAudio, surah?: Surah) => {
+   245→    setCurrentTrack(track);
+   246→    setCurrentSurah(surah || null);
+   247→    setIsPlaying(true);
+   248→    setShowPlayer(true);
+   249→  }, []);
+   250→
+   251→  const closePlayer = useCallback(() => {
+   252→    setShowPlayer(false);
+   253→    setIsPlaying(false);
+   254→    if (audioRef.current) {
+   255→      audioRef.current.pause();
+   256→      audioRef.current.removeAttribute("src");
+   257→      audioRef.current.load();
+   258→    }
+   259→    setCurrentTrack(null);
+   260→    setCurrentSurah(null);
+   261→    setCurrentTime(0);
+   262→    setDuration(0);
+   263→  }, []);
+   264→
+   265→  const togglePlay = useCallback(() => {
+   266→    if (!audioRef.current) return;
+   267→    if (isPlaying) {
+   268→      audioRef.current.pause();
+   269→      setIsPlaying(false);
+   270→    } else {
+   271→      audioRef.current.play().catch(() => setIsPlaying(false));
+   272→      setIsPlaying(true);
+   273→    }
+   274→  }, [isPlaying]);
+   275→
+   276→  const seekBy = useCallback((seconds: number) => {
+   277→    if (!audioRef.current || !duration) return;
+   278→    const newTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
+   279→ isLoadingRef.current = true;
+   280→    audioRef.current.currentTime = newTime;
+   281→    setCurrentTime(newTime);
+   282→  }, [duration]);
+   283→
+   284→  const playNext = useCallback(() => {
+   285→    if (!currentSurah || !currentTrack) return;
+   286→    const idx = currentSurah.audio.findIndex((a) => a.url === currentTrack.url);
+   287→    if (idx < currentSurah.audio.length - 1) {
+   288→      playTrack(currentSurah.audio[idx + 1], currentSurah);
+   289→    }
+   290→  }, [currentSurah, currentTrack, playTrack]);
+   291→
+   292→  const playPrev = useCallback(() => {
+   293→    if (!currentSurah || !currentTrack) return;
+   294→    const idx = currentSurah.audio.findIndex((a) => a.url === currentTrack.url);
+   295→    if (idx > 0) {
+   296→      playTrack(currentSurah.audio[idx - 1], currentSurah);
+   297→    }
+   298→  }, [currentSurah, currentTrack, playTrack]);
+   299→
+   300→  const seekTo = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+   301→    if (!progressRef.current || !audioRef.current || !duration) return;
+   302→    const rect = progressRef.current.getBoundingClientRect();
+   303→    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+   304→    const newTime = pct * duration;
+   305→    isLoadingRef.current = true;
+   306→    audioRef.current.currentTime = newTime;
+   307→    setCurrentTime(newTime);
+   308→  }, [duration]);
+   309→
+   310→  const toggleMute = useCallback(() => {
+   311→    if (!audioRef.current) return;
+   312→    if (isMuted) {
+   313→      audioRef.current.volume = volume;
+   314→    } else {
+   315→      audioRef.current.volume = 0;
+   316→    }
+   317→    setIsMuted(!isMuted);
+   318→  }, [isMuted, volume]);
+   319→
+   320→  const changeVolume = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+   321→    const v = parseFloat(e.target.value);
+   322→    setVolume(v);
+   323→    if (audioRef.current) {
+   324→      audioRef.current.volume = v;
+   325→      if (v > 0) setIsMuted(false);
+   326→    }
+   327→  }, []);
+   328→
+   329→  // Audio source effect — with AbortError prevention
+   330→  useEffect(() => {
+   331→    const audio = audioRef.current;
+   332→    if (!audio || !currentTrack) return;
+   333→
+   334→    // Prevent AbortError: abort any pending play before loading new source
+   335→    isLoadingRef.current = true;
+   336→    audio.pause();
+   337→    setIsPlaying(false);
+   338→
+   339→    audio.src = proxyUrl(currentTrack.url);
+   340→    audio.volume = isMuted ? 0 : volume;
+   341→    audio.load();
+   342→  }, [currentTrack]);
+   343→
+   344→  // Separate effect for playing after load
+   345→  useEffect(() => {
+   346→    const audio = audioRef.current;
+   347→    if (!audio) return;
+   348→
+   349→    const canPlay = () => {
+   350→      if (isLoadingRef.current) {
+   351→        isLoadingRef.current = false;
+   352→        audio.play().then(() => setIsPlaying(true)).catch(() => {
+   353→          setIsPlaying(false);
+   354→          isLoadingRef.current = false;
+   355→        });
+   356→      }
+   357→    };
+   358→
+   359→    audio.addEventListener("canplay", canPlay);
+   360→    return () => audio.removeEventListener("canplay", canPlay);
+   361→  }, [currentTrack]);
+   362→
+   363→  // Audio event listeners
+   364→  useEffect(() => {
+   365→    const audio = audioRef.current;
+   366→    if (!audio) return;
+   367→
+   368→    const onTime = () => setCurrentTime(audio.currentTime);
+   369→    const onDur = () => setDuration(audio.duration);
+   370→    const onEnd = () => {
+   371→      setIsPlaying(false);
+   372→      try { localStorage.removeItem("bayan-audio-pos"); } catch {}
+   373→      playNext();
+   374→    };
+   375→    const onError = () => {
+   376→      // Silently recover from seek/network errors — the browser usually
+   377→      // fires a second canplaythrough after the error so playback resumes.
+   378→      console.warn("Audio element error (likely seek-related), ignoring.");
+   379→    };
+   380→    const onWaiting = () => {
+   381→      // Browser is buffering (happens after seek) — keep isPlaying true
+   382→    };
+   383→    const onCanPlayThrough = () => {
+   384→      // Auto-resume playback after seek buffer is ready
+   385→      if (isLoadingRef.current) {
+   386→        isLoadingRef.current = false;
+   387→        audio.play().then(() => setIsPlaying(true)).catch(() => {
+   388→          setIsPlaying(false);
+   389→          isLoadingRef.current = false;
+   390→        });
+   391→      }
+   392→    };
+   393→
+   394→    audio.addEventListener("timeupdate", onTime);
+   395→    audio.addEventListener("loadedmetadata", onDur);
+   396→    audio.addEventListener("durationchange", onDur);
+   397→    audio.addEventListener("ended", onEnd);
+   398→    audio.addEventListener("error", onError, true); // capture phase
+   399→    audio.addEventListener("waiting", onWaiting);
+   400→    audio.addEventListener("canplaythrough", onCanPlayThrough);
+   401→
+   402→    return () => {
+   403→      audio.removeEventListener("timeupdate", onTime);
+   404→      audio.removeEventListener("loadedmetadata", onDur);
+   405→      audio.removeEventListener("durationchange", onDur);
+   406→      audio.removeEventListener("ended", onEnd);
+   407→      audio.removeEventListener("error", onError, true);
+   408→      audio.removeEventListener("waiting", onWaiting);
+   409→      audio.removeEventListener("canplaythrough", onCanPlayThrough);
+   410→    };
+   411→  }, [playNext]);
+   412→
+   413→  // Fetch prayer times
+   414→  const fetchPrayerTimes = useCallback(async () => {
+   415→    setPrayerLoading(true);
+   416→    setPrayerError("");
+   417→    setQiblaAngle(null);
+   418→
+   419→    try {
+   420→      let lat: number, lng: number;
+   421→      let locName = "";
+   422→
+   423→      if (useGeo) {
+   424→        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+   425→          navigator.geolocation.getCurrentPosition(resolve, reject, {
+   426→            timeout: 10000,
+   427→            enableHighAccuracy: false,
+   428→          });
+   429→        });
+   430→        lat = pos.coords.latitude;
+   431→        lng = pos.coords.longitude;
+   432→      } else {
+   433→        const res = await fetch(`/api/prayer?city=${selectedCity}`);
+   434→        const data = await res.json();
+   435→        if (data.error) {
+   436→          setPrayerError(data.error);
+   437→          setPrayerLoading(false);
+   438→          return;
+   439→        }
+   440→        setPrayerData(data);
+   441→        lat = data.meta.latitude;
+   442→        lng = data.meta.longitude;
+   443→        locName = data.meta.locationName || data.meta.timezone;
+   444→        setPrayerLoading(false);
+   445→        // Calculate Qibla
+   446→        calcQibla(lat, lng, locName);
+   447→        return;
+   448→      }
+   449→
+   450→      const res = await fetch(`/api/prayer?lat=${lat}&lng=${lng}`);
+   451→      const data = await res.json();
+   452→      if (data.error) {
+   453→        setPrayerError(data.error);
+   454→      } else {
+   455→        setPrayerData(data);
+   456→        locName = data.meta.locationName || data.meta.timezone;
+   457→      }
+   458→
+   459→      calcQibla(lat, lng, locName);
+   460→    } catch (err) {
+   461→      if (err instanceof GeolocationPositionError) {
+   462→        setPrayerError("Location access denied. Please select a city below instead.");
+   463→        setUseGeo(false);
+   464→      } else {
+   465→        setPrayerError("Failed to load prayer times. Check your internet connection.");
+   466→      }
+   467→    } finally {
+   468→      setPrayerLoading(false);
+   469→    }
+   470→  }, [selectedCity, useGeo]);
+   471→
+   472→  // Request device orientation permission (required on iOS 13+)
+   473→  const requestOrientationPermission = useCallback(async () => {
+   474→    if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+   475→      try {
+   476→        const perm = await (DeviceOrientationEvent as any).requestPermission();
+   477→        if (perm === "granted") {
+   478→          setHasGyro(null); // reset to re-trigger the listener effect
+   479→        }
+   480→      } catch {
+   481→        setHasGyro(false);
+   482→      }
+   483→    }
+   484→  }, []);
+   485→
+   486→  // Device orientation for Qibla compass
+   487→  useEffect(() => {
+   488→    // On iOS, don't set up listener until permission is granted
+   489→    if (typeof (DeviceOrientationEvent as any).requestPermission === "function" && hasGyro === null) {
+   490→      // Wait for user to trigger permission via button tap
+   491→      return;
+   492→    }
+   493→    const onOrientation = (e: DeviceOrientationEvent) => {
+   494→      if (e.alpha !== null) {
+   495→        setDeviceHeading(e.alpha);
+   496→        setHasGyro(true);
+   497→      }
+   498→    };
+   499→    window.addEventListener("deviceorientation", onOrientation);
+   500→    // Check after 1.5s if we got any reading
+   501→    const timer = setTimeout(() => {
+   502→      setHasGyro((prev) => (prev === null ? false : prev));
+   503→    }, 1500);
+   504→    return () => {
+   505→      window.removeEventListener("deviceorientation", onOrientation);
+   506→      clearTimeout(timer);
+   507→    };
+   508→  }, [hasGyro]);
+   509→
+   510→  const calcQibla = (lat: number, lng: number, _locName?: string) => {
+   511→    const kaabaLat = (21.4225 * Math.PI) / 180;
+   512→    const kaabaLng = (39.8262 * Math.PI) / 180;
+   513→    const latR = (lat * Math.PI) / 180;
+   514→    const lngR = (lng * Math.PI) / 180;
+   515→    const y = Math.sin(kaabaLng - lngR);
+   516→    const x = Math.cos(latR) * Math.tan(kaabaLat) - Math.sin(latR) * Math.cos(kaabaLng - lngR);
+   517→    let qibla = (Math.atan2(y, x) * 180) / Math.PI;
+   518→    qibla = ((qibla % 360) + 360) % 360;
+   519→    setQiblaAngle(qibla);
+   520→  };
+   521→
+   522→  useEffect(() => {
+   523→    if (activeTab === "prayer" && !prayerData && !prayerLoading) {
+   524→      fetchPrayerTimes();
+   525→    }
+   526→  }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
+   527→
+   528→  // Fetch Quran surah — from API (real Urdu Junagarhi translation from Quran.com, with local fallback)
+   529→  useEffect(() => {
+   530→    if (activeTab !== "quran" || quranLoadingRef.current) return;
+   531→    quranLoadingRef.current = true;
+   532→    setQuranLoading(true);
+   533→    setQuranError("");
+   534→    fetch(`/api/quran?surah=${selectedSurahForReading}`)
+   535→      .then((r) => {
+   536→        if (!r.ok) throw new Error("Not found");
+   537→        return r.json();
+   538→      })
+   539→      .then((data) => {
+   540→        if (data.error) {
+   541→          setQuranError(data.error);
+   542→          setQuranData(null);
+   543→        } else {
+   544→          setQuranData(data);
+   545→        }
+   546→      })
+   547→      .catch(() => {
+   548→        setQuranError("Failed to load. Check your internet connection.");
+   549→      })
+   550→      .finally(() => {
+   551→        quranLoadingRef.current = false;
+   552→        setQuranLoading(false);
+   553→      });
+   554→  }, [activeTab, selectedSurahForReading, quranRetryKey]);
+   555→
+   556→  const progressPct = duration ? (currentTime / duration) * 100 : 0;
+   557→
+   558→  const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
+   559→    { key: "surahs", label: `Surahs (${surahs.length})`, icon: <List className="w-4 h-4" /> },
+   560→    { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
+   561→    { key: "intro", label: "Intro (4)", icon: <Headphones className="w-4 h-4" /> },
+   562→    { key: "asmaulhusna", label: "Asma ul Husna", icon: <Sparkles className="w-4 h-4" /> },
+   563→    { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
+   564→  ];
+   565→
+   566→  // Landing screen
+   567→  if (!entered) {
+   568→    return (
+   569→      <div className="min-h-screen bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-950 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+   570→        {/* Decorative Islamic pattern overlay */}
+   571→        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+   572→        
+   573→        {/* Glowing circle behind content */}
+   574→        <div className="absolute w-64 h-64 sm:w-80 sm:h-80 bg-emerald-500/10 rounded-full blur-3xl" />
+   575→        
+   576→        <div className="relative z-10 flex flex-col items-center text-center">
+   577→          {/* Book icon */}
+   578→          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-emerald-700/50 border-2 border-amber-400/30 flex items-center justify-center mb-6 sm:mb-8 shadow-lg shadow-emerald-900/50">
+   579→            <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-amber-300" />
+   580→          </div>
+   581→          
+   582→          {/* Title */}
+   583→          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+   584→            بَيَان الْقُرْآن
+   585→          </h1>
+   586→          <h2 className="text-xl sm:text-2xl font-semibold text-emerald-200 mb-1">Bayan ul Quran</h2>
+   587→          <p className="text-emerald-300/80 text-sm sm:text-base mb-8 sm:mb-10">Dr. Israr Ahmad</p>
+   588→          
+   589→          {/* Enter button */}
+   590→          <button
+   591→            onClick={() => setEntered(true)}
+   592→            className="group relative px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-base font-semibold rounded-xl shadow-lg shadow-emerald-900/40 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-emerald-800/40 active:scale-95"
+   593→          >
+   594→            <span className="flex items-center gap-2">
+   595→              Login
+   596→              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+   597→            </span>
+   598→          </button>
+   599→        </div>
+   600→        
+   601→        {/* Bottom decoration */}
+   602→        <div className="absolute bottom-8 text-emerald-500/40 text-xs">
+   603→ من الله توفيق
+   604→        </div>
+   605→      </div>
+   606→    );
+   607→  }
+   608→
+   609→  return (
+   610→    <div className="min-h-screen flex flex-col bg-background">
+   611→      <audio ref={audioRef} preload="auto"></audio>
+   612→
+   613→      <header className="sticky top-0 z-50 bg-emerald-800 text-white shadow-lg">
+   614→        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-5">
+   615→          <div className="flex items-center justify-between">
+   616→            <div className="flex items-center gap-3">
+   617→              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-700 flex items-center justify-center">
+   618→                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
+   619→              </div>
+   620→              <div>
+   621→                <h1 className="text-lg sm:text-xl font-bold tracking-tight">Bayan ul Quran</h1>
+   622→                <p className="text-emerald-200 text-xs sm:text-sm">Dr. Israr Ahmad</p>
+   623→              </div>
+   624→            </div>
+   625→            <div className="flex items-center gap-2">
+   626→              <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer">
+   627→                <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-semibold">
+   628→                  <Heart className="w-3.5 h-3.5 fill-current" />
+   629→                  <span className="hidden sm:inline">Donate for Orphan</span>
+   630→                  <span className="sm:hidden">Donate</span>
+   631→                </Button>
+   632→              </a>
+   633→              <Button size="sm" variant="ghost" className="text-emerald-200 hover:text-white hover:bg-emerald-700 text-xs sm:text-sm" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
+   634→                Sign Out
+   635→              </Button>
+   636→            </div>
+   637→          </div>
+   638→        </div>
+   639→      </header>
+   640→
+   641→      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 sm:py-6 pb-44">
+   642→        {/* Search */}
+   643→        {(activeTab === "surahs" || activeTab === "intro" || activeTab === "asmaulhusna") && (
+   644→          <div className="relative mb-4 sm:mb-6">
+   645→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   646→            <Input
+   647→              placeholder={activeTab === "asmaulhusna" ? "Search 99 Names of Allah..." : "Search surah by name or number..."}
+   648→              className="pl-10 h-11 bg-white border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
+   649→              value={activeTab === "asmaulhusna" ? asmaSearch : searchQuery}
+   650→              onChange={(e) => (activeTab === "asmaulhusna" ? setAsmaSearch(e.target.value) : setSearchQuery(e.target.value))}
+   651→            />
+   652→          </div>
+   653→        )}
+   654→
+   655→        {/* Tabs */}
+   656→        <div className="flex flex-wrap gap-2 mb-4 sm:mb-6 -mx-1 px-1">
+   657→          {tabs.map((tab) => (
+   658→            <Button
+   659→              key={tab.key}
+   660→              variant={activeTab === tab.key ? "default" : "outline"}
+   661→              size="sm"
+   662→              onClick={() => setActiveTab(tab.key)}
+   663→              className={`whitespace-nowrap ${activeTab === tab.key ? "bg-emerald-700 hover:bg-emerald-800 text-white" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}`}
+   664→            >
+   665→              <span className="mr-1.5">{tab.icon}</span>
+   666→              {tab.label}
+   667→            </Button>
+   668→          ))}
+   669→        </div>
+   670→
+   671→        
+   672→        {activeTab === "surahs" && (
+   673→          <div className="space-y-2">
+   674→            {filteredSurahs.length === 0 && (
+   675→              <div className="text-center py-12 text-muted-foreground">
+   676→                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+   677→                <p>No surahs found</p>
+   678→              </div>
+   679→            )}
+   680→            {filteredSurahs.map((surah) => {
+   681→              const isCurrent = currentSurah?.id === surah.id;
+   682→              return (
+   683→                <div
+   684→                  key={surah.id}
+   685→                  className={`surah-card bg-white rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-emerald-100 hover:border-emerald-300"}`}
+   686→                  onClick={() => playTrack(surah.audio[0], surah)}
+   687→                >
+   688→                  <div className="flex items-center gap-3 sm:gap-4">
+   689→                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700"}`}>
+   690→                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <span className="text-sm sm:text-base font-semibold">{surah.id}</span>}
+   691→                    </div>
+   692→                    <div className="flex-1 min-w-0">
+   693→                      <div className="flex items-baseline gap-2">
+   694→                        <span className="font-semibold text-sm sm:text-base text-foreground truncate">{surah.nameEnglish}</span>
+   695→                        <span className="text-base sm:text-lg text-emerald-800 font-medium" dir="rtl">{surah.nameArabic}</span>
+   696→                      </div>
+   697→                      <div className="flex items-center gap-2 mt-0.5">
+   698→                        <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${surah.type === "meccan" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
+   699→                          {surah.type === "meccan" ? "Meccan" : "Medinan"}
+   700→                        </Badge>
+   701→                        <span className="text-xs text-muted-foreground">{surah.ayahCount} Ayahs</span>
+   702→                        {surah.audio.length > 1 && <span className="text-xs text-emerald-600 font-medium">{surah.audio.length} parts</span>}
+   703→                      </div>
+   704→                    </div>
+   705→                    <Button variant="ghost" size="icon" className={`shrink-0 rounded-full ${isCurrent ? "text-emerald-700 hover:bg-emerald-50" : "text-muted-foreground hover:text-emerald-700"}`} onClick={(e) => { e.stopPropagation(); if (isCurrent && isPlaying) togglePlay(); else playTrack(surah.audio[0], surah); }}>
+   706→                      {isCurrent && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+   707→                    </Button>
+   708→                  </div>
+   709→                  {surah.audio.length > 1 && isCurrent && (
+   710→                    <div className="mt-3 pt-3 border-t border-emerald-100">
+   711→                      <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Parts</p>
+   712→                      <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+   713→                        {surah.audio.map((part, idx) => (
+   714→                          <div key={idx} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${currentTrack?.url === part.url ? "bg-emerald-100 text-emerald-800 font-medium" : "hover:bg-emerald-50 text-foreground"}`} onClick={(e) => { e.stopPropagation(); playTrack(part, surah); }}>
+   715→                            {currentTrack?.url === part.url && isPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <Play className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+   716→                            <span>{part.title}</span>
+   717→                          </div>
+   718→                        ))}
+   719→                      </div>
+   720→                    </div>
+   721→                  )}
+   722→                </div>
+   723→              );
+   724→            })}
+   725→          </div>
+   726→        )}
+   727→
+   728→        
+   729→        {activeTab === "quran" && (
+   730→          <div>
+   731→            <div className="flex gap-3 mb-4">
+   732→              <select
+   733→                className="flex-1 h-11 bg-white border border-emerald-200 rounded-xl px-3 text-sm focus:outline-none focus:border-emerald-500"
+   734→                value={selectedSurahForReading}
+   735→                onChange={(e) => setSelectedSurahForReading(Number(e.target.value))}
+   736→              >
+   737→                {surahs.map((s) => (
+   738→                  <option key={s.id} value={s.id}>
+   739→                    {s.id}. {s.nameEnglish} ({s.nameArabic}) - {s.ayahCount} Ayahs
+   740→                  </option>
+   741→                ))}
+   742→              </select>
+   743→            </div>
+   744→
+   745→            {/* Quick Para Navigation */}
+   746→            <div className="mb-4">
+   747→              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Jump to Para</p>
+   748→              <div className="flex flex-wrap gap-1.5">
+   749→                {paras.map((p) => (
+   750→                  <button
+   751→                    key={p.id}
+   752→                    className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-200 hover:bg-emerald-50 hover:border-emerald-400 transition-colors text-emerald-800 font-medium"
+   753→                    onClick={() => setSelectedSurahForReading(p.fromSurah)}
+   754→                  >
+   755→                    {p.id}
+   756→                  </button>
+   757→                ))}
+   758→              </div>
+   759→            </div>
+   760→
+   761→            {quranLoading && (
+   762→              <div className="flex flex-col items-center py-12 text-muted-foreground">
+   763→                <Loader2 className="w-8 h-8 animate-spin mb-2 text-emerald-600" />
+   764→                <p className="text-sm">Loading Surah...</p>
+   765→              </div>
+   766→            )}
+   767→
+   768→            {quranError && !quranLoading && (
+   769→              <div className="text-center py-12">
+   770→                <p className="text-sm text-red-500 mb-3">{quranError}</p>
+   771→                <Button onClick={() => setQuranRetryKey((k) => k + 1)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">
+   772→                  Try Again
+   773→                </Button>
+   774→              </div>
+   775→            )}
+   776→
+   777→            {quranData && !quranLoading && (
+   778→              <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
+   779→                <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 px-4 py-3 flex items-center justify-between">
+   780→                  <div>
+   781→                    <h3 className="font-bold text-white text-lg" dir="rtl">{quranData.nameArabic}</h3>
+   782→                    <p className="text-emerald-200 text-xs">Surah {quranData.surah} - {quranData.name} ({quranData.totalAyahs} Ayahs)</p>
+   783→                  </div>
+   784→                  <div className="flex gap-1">
+   785→                    {selectedSurahForReading > 1 && (
+   786→                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedSurahForReading((prev) => prev - 1)}>
+   787→                        Prev
+   788→                      </Button>
+   789→                    )}
+   790→                    {selectedSurahForReading < 114 && (
+   791→                      <Button variant="ghost" size="sm" className="text-white hover:bg-emerald-600 h-8" onClick={() => setSelectedSurahForReading((prev) => prev + 1)}>
+   792→                        Next
+   793→                      </Button>
+   794→                    )}
+   795→                  </div>
+   796→                </div>
+   797→                <div className="p-4 sm:p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+   798→                  {/* Bismillah at top (not as ayah) for surahs other than 1 and 9 */}
+   799→                  {quranData.surah !== 1 && quranData.surah !== 9 && (
+   800→                    <p className="text-center text-2xl text-emerald-800 font-medium pb-6 mb-6 border-b border-emerald-100" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
+   801→                  )}
+   802→                  <div className="space-y-6">
+   803→                    {quranData.ayahs.map((ayah) => (
+   804→                      <div key={ayah.number} className="flex gap-3">
+   805→                        <span className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700 text-xs font-bold mt-1">{ayah.numberInSurah}</span>
+   806→                        <p className="text-xl sm:text-2xl text-gray-900 leading-[2.5] font-medium flex-1" dir="rtl" lang="ar">{ayah.arabic}</p>
+   807→                      </div>
+   808→                    ))}
+   809→                  </div>
+   810→                </div>
+   811→              </div>
+   812→            )}
+   813→          </div>
+   814→        )}
+   815→
+   816→        
+   817→        {activeTab === "intro" && (
+   818→          <div className="space-y-2">
+   819→            {introductions.map((intro, idx) => {
+   820→              const isCurrent = currentTrack?.url === intro.url && !currentSurah;
+   821→              return (
+   822→                <div key={idx} className={`surah-card bg-white rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-emerald-100 hover:border-emerald-300"}`} onClick={() => playTrack(intro)}>
+   823→                  <div className="flex items-center gap-3 sm:gap-4">
+   824→                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700"}`}>
+   825→                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
+   826→                    </div>
+   827→                    <div className="flex-1 min-w-0">
+   828→                      <p className="font-semibold text-sm sm:text-base truncate">{intro.title}</p>
+   829→                      <p className="text-xs text-muted-foreground mt-0.5">Introduction to Bayan ul Quran</p>
+   830→                    </div>
+   831→                    <Button variant="ghost" size="icon" className={`shrink-0 rounded-full ${isCurrent ? "text-emerald-700" : "text-muted-foreground"}`} onClick={(e) => { e.stopPropagation(); if (isCurrent && isPlaying) togglePlay(); else playTrack(intro); }}>
+   832→                      {isCurrent && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+   833→                    </Button>
+   834→                  </div>
+   835→                </div>
+   836→              );
+   837→            })}
+   838→          </div>
+   839→        )}
+   840→
+   841→        
+   842→        {activeTab === "asmaulhusna" && (
+   843→          <div>
+   844→            <div className="text-center mb-4">
+   845→              <h2 className="text-2xl sm:text-3xl font-bold text-emerald-800" dir="rtl">أسماء الله الحسنى</h2>
+   846→              <p className="text-sm text-muted-foreground mt-1">The 99 Beautiful Names of Allah</p>
+   847→            </div>
+   848→
+   849→            
+   850→            <div className="bg-white rounded-xl border border-emerald-100 p-3 mb-6">
+   851→              <div className="aspect-video w-full rounded-lg overflow-hidden">
+   852→                <iframe
+   853→                  className="w-full h-full"
+   854→                  src="https://www.youtube.com/embed/VamZ-Jr8o5o?rel=0"
+   855→                  title="Asma ul Husna - 99 Names of Allah"
+   856→                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+   857→                  allowFullScreen
+   858→                />
+   859→              </div>
+   860→              <p className="text-xs text-center text-muted-foreground mt-2">Listen to the 99 Names of Allah</p>
+   861→            </div>
+   862→
+   863→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+   864→              {filteredAsma.map((name) => (
+   865→                <div key={name.id} className="bg-white rounded-xl border border-emerald-100 p-4 hover:border-emerald-300 transition-colors">
+   866→                  <div className="flex items-start gap-3">
+   867→                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 text-sm font-semibold">{name.id}</div>
+   868→                    <div className="min-w-0">
+   869→                      <p className="text-xl sm:text-2xl text-emerald-800 font-medium" dir="rtl">{name.arabic}</p>
+   870→                      <p className="font-semibold text-sm text-foreground mt-1">{name.transliteration}</p>
+   871→                      <p className="text-xs text-muted-foreground" dir="rtl" lang="ur" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}>{name.meaningUrdu}</p>
+   872→                      <p className="text-xs text-muted-foreground/70">{name.meaning}</p>
+   873→                    </div>
+   874→                  </div>
+   875→                </div>
+   876→              ))}
+   877→            </div>
+   878→            {filteredAsma.length === 0 && (
+   879→              <div className="text-center py-12 text-muted-foreground">
+   880→                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+   881→                <p>No names found</p>
+   882→              </div>
+   883→            )}
+   884→          </div>
+   885→        )}
+   886→
+   887→        
+   888→        {activeTab === "prayer" && (
+   889→          <div className="space-y-6">
+   890→            
+   891→            <div className="bg-white rounded-xl border border-emerald-100 p-4">
+   892→              <div className="flex items-center gap-2 mb-3">
+   893→                <MapPin className="w-4 h-4 text-emerald-700" />
+   894→                <span className="text-sm font-medium">Select Location</span>
+   895→              </div>
+   896→              <div className="flex items-center gap-3 mb-3">
+   897→                <label className="flex items-center gap-2 cursor-pointer">
+   898→                  <input
+   899→                    type="checkbox"
+   900→                    className="accent-emerald-600 w-4 h-4"
+   901→                    checked={useGeo}
+   902→                    onChange={(e) => { setUseGeo(e.target.checked); if (e.target.checked) { setPrayerData(null); } else { setPrayerData(null); } }}
+   903→                  />
+   904→                  <span className="text-sm">Use my current location</span>
+   905→                </label>
+   906→              </div>
+   907→              {!useGeo && (
+   908→                <div className="flex flex-wrap gap-1.5">
+   909→                  {CITY_OPTIONS.map((c) => (
+   910→                    <button
+   911→                      key={c.key}
+   912→                      className={`px-3 py-1.5 text-xs rounded-lg border transition-colors font-medium ${selectedCity === c.key ? "bg-emerald-700 text-white border-emerald-700" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}`}
+   913→                      onClick={() => { setSelectedCity(c.key); setPrayerData(null); }}
+   914→                    >
+   915→                      {c.label}
+   916→                    </button>
+   917→                  ))}
+   918→                </div>
+   919→              )}
+   920→            </div>
+   921→
+   922→            
+   923→            <div className="bg-white rounded-xl border border-emerald-100 p-6">
+   924→              <div className="flex items-center gap-2 mb-4">
+   925→                <Navigation className="w-5 h-5 text-emerald-700" />
+   926→                <h3 className="text-lg font-semibold text-foreground">Qibla Direction</h3>
+   927→              </div>
+   928→              {qiblaAngle !== null ? (
+   929→                <div className="flex flex-col items-center">
+   930→                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-emerald-200 relative bg-gradient-to-b from-emerald-50 to-white mb-3">
+   931→                    {/* Compass letters */}
+   932→                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-bold text-emerald-600">N</div>
+   933→                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-400">S</div>
+   934→                    <div className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">W</div>
+   935→                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">E</div>
+   936→                    {/* Needle: rotates opposite to device heading so it always points to Qibla */}
+   937→                    <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) rotate(${deviceHeading !== null ? qiblaAngle - deviceHeading : qiblaAngle}deg)`, transformOrigin: 'center center', transition: 'transform 0.3s ease-out' }}>
+   938→                      <div className="w-1.5 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full relative">
+   939→                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-r-[7px] border-b-[11px] border-l-transparent border-r-transparent border-b-amber-500" />
+   940→                      </div>
+   941→                    </div>
+   942→                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-700" />
+   943→                  </div>
+   944→                  <p className="text-sm text-center text-muted-foreground">
+   945→                    Qibla: <span className="font-semibold text-emerald-700">{Math.round(qiblaAngle)}°</span> from North
+   946→                  </p>
+   947→                  <p className="text-xs text-center text-amber-600 mt-2">Hold phone flat and rotate to find Qibla</p>
+   948→                  {hasGyro === null && typeof (DeviceOrientationEvent as any).requestPermission === "function" && (
+   949→                    <Button size="sm" variant="outline" className="mt-2 border-emerald-300 text-emerald-700 text-xs" onClick={requestOrientationPermission}>
+   950→                      <Navigation className="w-3.5 h-3.5 mr-1" />
+   951→                      Enable Compass
+   952→                    </Button>
+   953→                  )}
+   954→                </div>
+   955→              ) : (
+   956→                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+   957→                  <MapPin className="w-5 h-5 mr-2 opacity-50" />
+   958→                  Select a location to see Qibla direction
+   959→                </div>
+   960→              )}
+   961→            </div>
+   962→
+   963→            
+   964→            <div className="bg-white rounded-xl border border-emerald-100 p-6">
+   965→              <div className="flex items-center justify-between mb-4">
+   966→                <div className="flex items-center gap-2">
+   967→                  <Clock className="w-5 h-5 text-emerald-700" />
+   968→                  <h3 className="text-lg font-semibold text-foreground">Prayer Times</h3>
+   969→                </div>
+   970→                <Button variant="outline" size="sm" onClick={fetchPrayerTimes} disabled={prayerLoading} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+   971→                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${prayerLoading ? "animate-spin" : ""}`} />
+   972→                  Refresh
+   973→                </Button>
+   974→              </div>
+   975→
+   976→              {prayerLoading && (
+   977→                <div className="flex flex-col items-center py-8 text-muted-foreground">
+   978→                  <Loader2 className="w-8 h-8 animate-spin mb-2 text-emerald-600" />
+   979→                  <p className="text-sm">Loading prayer times...</p>
+   980→                </div>
+   981→              )}
+   982→
+   983→              {prayerError && !prayerLoading && (
+   984→                <div className="text-center py-8">
+   985→                  <p className="text-sm text-red-500 mb-3">{prayerError}</p>
+   986→                  <Button onClick={fetchPrayerTimes} size="sm" className="bg-emerald-700 hover:bg-emerald-800">Try Again</Button>
+   987→                </div>
+   988→              )}
+   989→
+   990→              {prayerData && !prayerLoading && (
+   991→                <>
+   992→                  <div className="flex flex-wrap items-center gap-2 mb-4 text-xs text-muted-foreground">
+   993→                    <MapPin className="w-3.5 h-3.5" />
+   994→                    <span>{prayerData.meta?.locationName || prayerData.meta?.timezone}</span>
+   995→                    <span className="mx-1">|</span>
+   996→                    <span>{prayerData.date?.readable}</span>
+   997→                    <span className="mx-1">|</span>
+   998→                    <span>{prayerData.date?.hijri?.date} {prayerData.date?.hijri?.month?.en} {prayerData.date?.hijri?.year} AH</span>
+   999→                  </div>
+  1000→                  <div className="space-y-2">
+  1001→                    {prayerTimes.map((p) => (
+  1002→                      <div key={p.name} className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${p.isNext ? "bg-emerald-100 border border-emerald-300" : "bg-emerald-50/50"}`}>
+  1003→                        <div className="flex items-center gap-3">
+  1004→                          {p.isNext && <div className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />}
+  1005→                          <span className={`font-medium text-sm ${p.isNext ? "text-emerald-800" : "text-foreground"}`}>{p.name}</span>
+  1006→                          {p.isNext && <Badge className="bg-emerald-600 text-white text-[10px] px-1.5">Next</Badge>}
+  1007→                        </div>
+  1008→                        <span className={`text-sm tabular-nums font-medium ${p.isNext ? "text-emerald-700" : "text-muted-foreground"}`}>{formatTime12(p.time)}</span>
+  1009→                      </div>
+  1010→                    ))}
+  1011→                  </div>
+  1012→                </>
+  1013→              )}
+  1014→            </div>
+  1015→          </div>
+  1016→        )}
+  1017→      </main>
+  1018→
+  1019→      
+  1020→      {showPlayer && currentTrack && (
+  1021→        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-emerald-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+  1022→          <div ref={progressRef} className="h-1.5 bg-emerald-100 cursor-pointer group" onClick={seekTo}>
+  1023→            <div className="h-full bg-emerald-600 transition-all duration-200 group-hover:bg-emerald-500 relative" style={{ width: `${progressPct}%` }}>
+  1024→              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-emerald-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+  1025→            </div>
+  1026→          </div>
+  1027→          <div className="max-w-4xl mx-auto px-4 py-3">
+  1028→            <div className="flex items-center gap-3">
+  1029→              <div className="flex-1 min-w-0">
+  1030→                <p className="font-semibold text-sm truncate text-foreground">{currentTrack.title}</p>
+  1031→                <p className="text-xs text-muted-foreground truncate">{currentSurah ? `Surah ${currentSurah.id} - ${currentSurah.nameEnglish}` : "Introduction"}</p>
+  1032→              </div>
+  1033→              <div className="flex items-center gap-1">
+  1034→                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={() => seekBy(-10)} title="Back 10s">
+  1035→                  <Rewind className="w-4 h-4" />
+  1036→                </Button>
+  1037→                <Button variant="default" size="icon" className="h-10 w-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white" onClick={togglePlay}>
+  1038→                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+  1039→                </Button>
+  1040→                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={() => seekBy(10)} title="Forward 10s">
+  1041→                  <FastForward className="w-4 h-4" />
+  1042→                </Button>
+  1043→              </div>
+  1044→              <div className="flex items-center gap-2">
+  1045→                <span className="text-xs text-muted-foreground tabular-nums">{formatTime(currentTime)}/{formatTime(duration)}</span>
+  1046→              </div>
+  1047→              <div className="hidden sm:flex items-center gap-3">
+  1048→                <div className="flex items-center gap-1.5">
+  1049→                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={toggleMute}>
+  1050→                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+  1051→                  </Button>
+  1052→                  <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={changeVolume} className="w-20 h-1 accent-emerald-600 cursor-pointer" />
+  1053→                </div>
+  1054→              </div>
+  1055→              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 shrink-0" onClick={closePlayer} aria-label="Close player">
+  1056→                <X className="w-4 h-4" />
+  1057→              </Button>
+  1058→            </div>
+  1059→          </div>
+  1060→        </div>
+  1061→      )}
+  1062→    </div>
+  1063→  );
+  1064→}
+  1065→
