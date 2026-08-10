@@ -13,6 +13,8 @@ import {
   Pause,
   SkipBack,
   SkipForward,
+  Rewind,
+  FastForward,
   Volume2,
   VolumeX,
   X,
@@ -203,6 +205,14 @@ export default function Home() {
       setIsPlaying(true);
     }
   }, [isPlaying]);
+
+  const seekBy = useCallback((seconds: number) => {
+    if (!audioRef.current || !duration) return;
+    const newTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
+ isLoadingRef.current = true;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, [duration]);
 
   const playNext = useCallback(() => {
     if (!currentSurah || !currentTrack) return;
@@ -409,6 +419,8 @@ export default function Home() {
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
 
+  const [quranRetryKey, setQuranRetryKey] = useState(0);
+
   // Fetch Quran surah
   useEffect(() => {
     if (activeTab !== "quran" || quranLoading) return;
@@ -428,7 +440,7 @@ export default function Home() {
         setQuranError("Failed to load. Check your internet connection.");
       })
       .finally(() => setQuranLoading(false));
-  }, [activeTab, selectedSurahForReading, quranLoading]);
+  }, [activeTab, selectedSurahForReading, quranLoading, quranRetryKey]);
 
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
@@ -651,7 +663,7 @@ export default function Home() {
             {quranError && !quranLoading && (
               <div className="text-center py-12">
                 <p className="text-sm text-red-500 mb-3">{quranError}</p>
-                <Button onClick={() => { setQuranLoading(false); }} size="sm" className="bg-emerald-700 hover:bg-emerald-800">
+                <Button onClick={() => setQuranRetryKey((k) => k + 1)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">
                   Try Again
                 </Button>
               </div>
@@ -904,14 +916,14 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground truncate">{currentSurah ? `Surah ${currentSurah.id} - ${currentSurah.nameEnglish}` : "Introduction"}</p>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={playPrev} disabled={!currentSurah || currentSurah.audio.length <= 1}>
-                  <SkipBack className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={() => seekBy(-10)} title="Back 10s">
+                  <Rewind className="w-4 h-4" />
                 </Button>
                 <Button variant="default" size="icon" className="h-10 w-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white" onClick={togglePlay}>
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                 </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={playNext} disabled={!currentSurah || currentSurah.audio.length <= 1}>
-                  <SkipForward className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground" onClick={() => seekBy(10)} title="Forward 10s">
+                  <FastForward className="w-4 h-4" />
                 </Button>
               </div>
               <div className="hidden sm:flex items-center gap-3">

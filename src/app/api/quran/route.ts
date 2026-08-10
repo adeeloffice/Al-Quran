@@ -1,25 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
+async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
+  for (let i = 0; i <= retries; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    try {
+      const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+      clearTimeout(timeoutId);
+      if (res.ok) return res;
+      if (i === retries) return res;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (i === retries) throw err;
+    }
+  }
+  throw new Error("All retries failed");
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const surah = searchParams.get("surah");
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
     const [arabicRes, urduRes] = await Promise.all([
-      fetch(`https://api.alquran.cloud/v1/surah/${surah || 1}/quran-uthmani`, {
-        signal: controller.signal,
-        cache: "no-store",
-      }),
-      fetch(`https://api.alquran.cloud/v1/surah/${surah || 1}/urdu.junagarhi`, {
-        signal: controller.signal,
-        cache: "no-store",
-      }),
+      fetchWithRetry(`https://api.alquran.cloud/v1/surah/${surah || 1}/quran-uthmani`),
+      fetchWithRetry(`https://api.alquran.cloud/v1/surah/${surah || 1}/urdu.junagarhi`),
     ]);
-
-    clearTimeout(timeoutId);
 
     const arabicData = await arabicRes.json();
     const urduData = await urduRes.json();
@@ -49,14 +55,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Quran API error:", error);
-    if (error instanceof DOMException && error.name === "AbortError") {
-      return NextResponse.json(
-        { error: "Quran API timed out. Please try again." },
-        { status: 504 }
-      );
-    }
     return NextResponse.json(
-      { error: "Failed to fetch Quran data" },
+      { error: "Quran API timed out. Please tap Try Again." },
       { status: 502 }
     );
   }
