@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useTheme } from "next-themes";
 import { surahs, introductions, type Surah, type SurahAudio } from "@/lib/surah-data";
 import { asmaUlHusna } from "@/lib/asma-ul-husna";
-import { paras } from "@/lib/quran-paras";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ import {
   Heart,
   ChevronRight,
   BookText,
+  Sun,
+  Moon,
+  LogOut,
 } from "lucide-react";
 
 function formatTime(seconds: number): string {
@@ -51,7 +54,7 @@ function proxyUrl(originalUrl: string): string {
   return `/api/audio?url=${encodeURIComponent(originalUrl)}`;
 }
 
-type TabType = "surahs" | "intro" | "asmaulhusna" | "prayer" | "quran";
+type TabType = "surahs" | "asmaulhusna" | "prayer" | "quran";
 
 interface PrayerTime {
   name: string;
@@ -83,26 +86,13 @@ interface QuranSurah {
   ayahs: QuranAyah[];
 }
 
-const CITY_OPTIONS = [
-  { key: "karachi", label: "Karachi" },
-  { key: "lahore", label: "Lahore" },
-  { key: "islamabad", label: "Islamabad" },
-  { key: "makkah", label: "Makkah" },
-  { key: "madinah", label: "Madinah" },
-  { key: "riyadh", label: "Riyadh" },
-  { key: "dubai", label: "Dubai" },
-  { key: "istanbul", label: "Istanbul" },
-  { key: "london", label: "London" },
-  { key: "new_york", label: "New York" },
-  { key: "cairo", label: "Cairo" },
-  { key: "dhaka", label: "Dhaka" },
-  { key: "jakarta", label: "Jakarta" },
-  { key: "kuala_lumpur", label: "Kuala Lumpur" },
-  { key: "jeddah", label: "Jeddah" },
-];
+// Intro audios merged into surahs list as item 0
 
 export default function Home() {
+  const { theme, setTheme } = useTheme();
   const [entered, setEntered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTrack, setCurrentTrack] = useState<SurahAudio | null>(null);
   const [currentSurah, setCurrentSurah] = useState<Surah | null>(null);
@@ -125,8 +115,7 @@ export default function Home() {
   const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState("");
-  const [selectedCity, setSelectedCity] = useState("karachi");
-  const [useGeo, setUseGeo] = useState(true);
+
   const [qiblaAngle, setQiblaAngle] = useState<number | null>(null);
   const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
   const [hasGyro, setHasGyro] = useState<boolean | null>(null);
@@ -152,8 +141,7 @@ export default function Home() {
         if (s.volume !== undefined) setVolume(s.volume);
         if (s.isMuted !== undefined) setIsMuted(s.isMuted);
         if (s.selectedSurahForReading) setSelectedSurahForReading(s.selectedSurahForReading);
-        if (s.selectedCity) setSelectedCity(s.selectedCity);
-        if (s.useGeo !== undefined) setUseGeo(s.useGeo);
+
         if (s.trackUrl) {
           const track: SurahAudio = { url: s.trackUrl, title: s.trackTitle || "" };
           const surah = s.surahId ? surahs.find((su) => su.id === s.surahId) || null : null;
@@ -177,14 +165,14 @@ export default function Home() {
 
   // Save state to localStorage on changes
   useEffect(() => {
-    const state: any = { entered, activeTab, volume, isMuted, selectedSurahForReading, selectedCity, useGeo };
+    const state: any = { entered, activeTab, volume, isMuted, selectedSurahForReading };
     if (currentTrack) {
       state.trackUrl = currentTrack.url;
       state.trackTitle = currentTrack.title;
       if (currentSurah) state.surahId = currentSurah.id;
     }
     try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
-  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedSurahForReading, selectedCity, useGeo]);
+  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, selectedSurahForReading]);
 
   // Restore audio position after track loads (only if same track URL)
   useEffect(() => {
@@ -201,16 +189,24 @@ export default function Home() {
     } catch {}
   }, [currentTrack]);
 
+  // Build intro as a virtual surah (id=0) for the surahs list
+  const introAsSurah: Surah = useMemo(() => ({
+    id: 0, number: "000", nameArabic: "مقدمہ", nameUrdu: "مقدمہ", nameEnglish: "Introduction",
+    ayahCount: 0, type: "meccan", audio: introductions,
+  }), []);
+
+  const allSurahItems = useMemo(() => [introAsSurah, ...surahs], [introAsSurah]);
+
   const filteredSurahs = useMemo(
     () =>
-      surahs.filter(
+      allSurahItems.filter(
         (s) =>
           s.nameEnglish.toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.nameUrdu.includes(searchQuery) ||
           s.number.includes(searchQuery) ||
           s.nameArabic.includes(searchQuery)
       ),
-    [searchQuery]
+    [allSurahItems, searchQuery]
   );
 
   const filteredAsma = useMemo(
@@ -427,35 +423,14 @@ export default function Home() {
     setQiblaAngle(null);
 
     try {
-      let lat: number, lng: number;
-      let locName = "";
-
-      if (useGeo) {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
-            enableHighAccuracy: false,
-          });
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          timeout: 10000,
+          enableHighAccuracy: false,
         });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } else {
-        const res = await fetch(`/api/prayer?city=${selectedCity}`);
-        const data = await res.json();
-        if (data.error) {
-          setPrayerError(data.error);
-          setPrayerLoading(false);
-          return;
-        }
-        setPrayerData(data);
-        lat = data.meta.latitude;
-        lng = data.meta.longitude;
-        locName = data.meta.locationName || data.meta.timezone;
-        setPrayerLoading(false);
-        // Calculate Qibla
-        calcQibla(lat, lng, locName);
-        return;
-      }
+      });
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
 
       const res = await fetch(`/api/prayer?lat=${lat}&lng=${lng}`);
       const data = await res.json();
@@ -463,21 +438,19 @@ export default function Home() {
         setPrayerError(data.error);
       } else {
         setPrayerData(data);
-        locName = data.meta.locationName || data.meta.timezone;
+        const locName = data.meta.locationName || data.meta.timezone;
+        calcQibla(lat, lng, locName);
       }
-
-      calcQibla(lat, lng, locName);
     } catch (err) {
       if (err instanceof GeolocationPositionError) {
-        setPrayerError("Location access denied. Please select a city below instead.");
-        setUseGeo(false);
+        setPrayerError("Location access denied. Please enable location permission and try again.");
       } else {
         setPrayerError("Failed to load prayer times. Check your internet connection.");
       }
     } finally {
       setPrayerLoading(false);
     }
-  }, [selectedCity, useGeo]);
+  }, []);
 
   // Request device orientation permission (required on iOS 13+)
   const requestOrientationPermission = useCallback(async () => {
@@ -587,9 +560,8 @@ export default function Home() {
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
-    { key: "surahs", label: `Surahs (${surahs.length})`, icon: <List className="w-4 h-4" /> },
+    { key: "surahs", label: `Surahs (114)`, icon: <List className="w-4 h-4" /> },
     { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
-    { key: "intro", label: "Intro (4)", icon: <Headphones className="w-4 h-4" /> },
     { key: "asmaulhusna", label: "Asma ul Husna", icon: <Sparkles className="w-4 h-4" /> },
     { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
   ];
@@ -611,9 +583,11 @@ export default function Home() {
           </div>
           
           {/* Title */}
+          <p className="text-4xl sm:text-5xl md:text-6xl font-bold text-amber-300/90 mb-4" dir="rtl">الله</p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
             بَيَان الْقُرْآن
           </h1>
+          <p className="text-2xl sm:text-3xl text-emerald-200/90 mb-1" dir="rtl" lang="ar">محمد ﷺ</p>
           <h2 className="text-xl sm:text-2xl font-semibold text-emerald-200 mb-1">Bayan ul Quran</h2>
           <p className="text-emerald-300/80 text-sm sm:text-base mb-8 sm:mb-10">Dr. Israr Ahmad</p>
           
@@ -638,10 +612,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background dark:bg-gray-950">
       <audio ref={audioRef} preload="auto"></audio>
 
-      <header className="sticky top-0 z-50 bg-emerald-800 text-white shadow-lg">
+      <header className="sticky top-0 z-50 bg-emerald-800 dark:bg-emerald-950 text-white shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-4 sm:py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -654,6 +628,9 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button size="icon" variant="ghost" className="text-emerald-200 hover:text-amber-300 hover:bg-emerald-700" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle dark mode">
+                {mounted && theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
               <a href="https://www.sos.org.pk/PersonForm" target="_blank" rel="noopener noreferrer">
                 <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-semibold">
                   <Heart className="w-3.5 h-3.5 fill-current" />
@@ -661,8 +638,10 @@ export default function Home() {
                   <span className="sm:hidden">Donate</span>
                 </Button>
               </a>
-              <Button size="sm" variant="ghost" className="text-emerald-200 hover:text-white hover:bg-emerald-700 text-xs sm:text-sm" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
-                Sign Out
+              <Button size="sm" className="bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-red-100 border border-red-400/30 text-xs sm:text-sm gap-1.5 font-medium" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="sm:hidden">Out</span>
               </Button>
             </div>
           </div>
@@ -671,12 +650,12 @@ export default function Home() {
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4 sm:py-6 pb-44">
         {/* Search */}
-        {(activeTab === "surahs" || activeTab === "intro" || activeTab === "asmaulhusna") && (
+        {(activeTab === "surahs" || activeTab === "asmaulhusna") && (
           <div className="relative mb-4 sm:mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={activeTab === "asmaulhusna" ? "Search 99 Names of Allah..." : "Search surah by name or number..."}
-              className="pl-10 h-11 bg-white border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
+              className="pl-10 h-11 bg-white dark:bg-gray-800 border-emerald-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
               value={activeTab === "asmaulhusna" ? asmaSearch : searchQuery}
               onChange={(e) => (activeTab === "asmaulhusna" ? setAsmaSearch(e.target.value) : setSearchQuery(e.target.value))}
             />
@@ -713,12 +692,12 @@ export default function Home() {
               return (
                 <div
                   key={surah.id}
-                  className={`surah-card bg-white rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-emerald-100 hover:border-emerald-300"}`}
+                  className={`surah-card bg-white dark:bg-gray-800 rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/20" : "border-emerald-100 dark:border-gray-700 hover:border-emerald-300"}`}
                   onClick={() => playTrack(surah.audio[0], surah)}
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700"}`}>
-                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <span className="text-sm sm:text-base font-semibold">{surah.id}</span>}
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700"}`}>
+                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <span className="text-sm sm:text-base font-semibold">{surah.id === 0 ? "\u25CF" : surah.id}</span>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
@@ -729,8 +708,8 @@ export default function Home() {
                         <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${surah.type === "meccan" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
                           {surah.type === "meccan" ? "Meccan" : "Medinan"}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">{surah.ayahCount} Ayahs</span>
-                        {surah.audio.length > 1 && <span className="text-xs text-emerald-600 font-medium">{surah.audio.length} parts</span>}
+                        <span className="text-xs text-muted-foreground">{surah.id === 0 ? "4 parts" : `${surah.ayahCount} Ayahs`}</span>
+                        {surah.audio.length > 1 && <span className="text-xs text-emerald-600 font-medium">{surah.id === 0 ? "" : `${surah.audio.length} parts`}</span>}
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" className={`shrink-0 rounded-full ${isCurrent ? "text-emerald-700 hover:bg-emerald-50" : "text-muted-foreground hover:text-emerald-700"}`} onClick={(e) => { e.stopPropagation(); if (isCurrent && isPlaying) togglePlay(); else playTrack(surah.audio[0], surah); }}>
@@ -738,11 +717,11 @@ export default function Home() {
                     </Button>
                   </div>
                   {surah.audio.length > 1 && isCurrent && (
-                    <div className="mt-3 pt-3 border-t border-emerald-100">
+                    <div className="mt-3 pt-3 border-t border-emerald-100 dark:border-gray-700">
                       <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Parts</p>
                       <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                         {surah.audio.map((part, idx) => (
-                          <div key={idx} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${currentTrack?.url === part.url ? "bg-emerald-100 text-emerald-800 font-medium" : "hover:bg-emerald-50 text-foreground"}`} onClick={(e) => { e.stopPropagation(); playTrack(part, surah); }}>
+                          <div key={idx} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${currentTrack?.url === part.url ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-medium" : "hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-foreground"}`} onClick={(e) => { e.stopPropagation(); playTrack(part, surah); }}>
                             {currentTrack?.url === part.url && isPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <Play className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
                             <span>{part.title}</span>
                           </div>
@@ -761,7 +740,7 @@ export default function Home() {
           <div>
             <div className="flex gap-3 mb-4">
               <select
-                className="flex-1 h-11 bg-white border border-emerald-200 rounded-xl px-3 text-sm focus:outline-none focus:border-emerald-500"
+                className="flex-1 h-11 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-gray-700 rounded-xl px-3 text-sm focus:outline-none focus:border-emerald-500 dark:text-gray-200"
                 value={selectedSurahForReading}
                 onChange={(e) => setSelectedSurahForReading(Number(e.target.value))}
               >
@@ -845,29 +824,7 @@ export default function Home() {
         )}
 
         
-        {activeTab === "intro" && (
-          <div className="space-y-2">
-            {introductions.map((intro, idx) => {
-              const isCurrent = currentTrack?.url === intro.url && !currentSurah;
-              return (
-                <div key={idx} className={`surah-card bg-white rounded-xl border p-3 sm:p-4 cursor-pointer ${isCurrent ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-emerald-100 hover:border-emerald-300"}`} onClick={() => playTrack(intro)}>
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0 ${isCurrent ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700"}`}>
-                      {isCurrent && isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm sm:text-base truncate">{intro.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Introduction to Bayan ul Quran</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className={`shrink-0 rounded-full ${isCurrent ? "text-emerald-700" : "text-muted-foreground"}`} onClick={(e) => { e.stopPropagation(); if (isCurrent && isPlaying) togglePlay(); else playTrack(intro); }}>
-                      {isCurrent && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+
 
         
         {activeTab === "asmaulhusna" && (
@@ -878,7 +835,7 @@ export default function Home() {
             </div>
 
             
-            <div className="bg-white rounded-xl border border-emerald-100 p-3 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-3 mb-6">
               <div className="aspect-video w-full rounded-lg overflow-hidden">
                 <iframe
                   className="w-full h-full"
@@ -893,7 +850,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {filteredAsma.map((name) => (
-                <div key={name.id} className="bg-white rounded-xl border border-emerald-100 p-4 hover:border-emerald-300 transition-colors">
+                <div key={name.id} className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4 hover:border-emerald-300 transition-colors">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 text-sm font-semibold">{name.id}</div>
                     <div className="min-w-0">
@@ -919,39 +876,25 @@ export default function Home() {
         {activeTab === "prayer" && (
           <div className="space-y-6">
             
-            <div className="bg-white rounded-xl border border-emerald-100 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <MapPin className="w-4 h-4 text-emerald-700" />
-                <span className="text-sm font-medium">Select Location</span>
-              </div>
-              <div className="flex items-center gap-3 mb-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="accent-emerald-600 w-4 h-4"
-                    checked={useGeo}
-                    onChange={(e) => { setUseGeo(e.target.checked); if (e.target.checked) { setPrayerData(null); } else { setPrayerData(null); } }}
-                  />
-                  <span className="text-sm">Use my current location</span>
-                </label>
-              </div>
-              {!useGeo && (
-                <div className="flex flex-wrap gap-1.5">
-                  {CITY_OPTIONS.map((c) => (
-                    <button
-                      key={c.key}
-                      className={`px-3 py-1.5 text-xs rounded-lg border transition-colors font-medium ${selectedCity === c.key ? "bg-emerald-700 text-white border-emerald-700" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}`}
-                      onClick={() => { setSelectedCity(c.key); setPrayerData(null); }}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-emerald-900 p-4">
+              <Button
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold h-12 text-sm gap-2"
+                onClick={() => { setUseGeo(true); setPrayerData(null); fetchPrayerTimes(); }}
+                disabled={prayerLoading}
+              >
+                <MapPin className="w-4 h-4" />
+                {prayerLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                Use Your Current Location
+              </Button>
+              {prayerData && (
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Location: <span className="font-medium text-foreground">{prayerData.meta?.locationName || prayerData.meta?.timezone}</span>
+                </p>
               )}
             </div>
 
             
-            <div className="bg-white rounded-xl border border-emerald-100 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Navigation className="w-5 h-5 text-emerald-700" />
                 <h3 className="text-lg font-semibold text-foreground">Qibla Direction</h3>
@@ -992,7 +935,7 @@ export default function Home() {
             </div>
 
             
-            <div className="bg-white rounded-xl border border-emerald-100 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-emerald-700" />
@@ -1049,7 +992,7 @@ export default function Home() {
 
       
       {showPlayer && currentTrack && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-50 border-t-2 border-emerald-600 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-50 dark:bg-gray-900 border-t-2 border-emerald-600 shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
           {/* Touch-friendly seekbar */}
           <div className="px-3 pt-2.5">
             <input

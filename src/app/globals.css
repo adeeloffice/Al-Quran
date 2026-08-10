@@ -89,6 +89,32 @@
   --chart-5: #fbbf24;
 }
 
+.dark {
+  --background: #022c22;
+  --foreground: #ecfdf5;
+  --card: #064e3b;
+  --card-foreground: #ecfdf5;
+  --popover: #064e3b;
+  --popover-foreground: #ecfdf5;
+  --primary: #34d399;
+  --primary-foreground: #022c22;
+  --secondary: #065f46;
+  --secondary-foreground: #ecfdf5;
+  --muted: #064e3b;
+  --muted-foreground: #9ca3af;
+  --accent: #78350f;
+  --accent-foreground: #fde68a;
+  --destructive: #f87171;
+  --border: #065f46;
+  --input: #065f46;
+  --ring: #34d399;
+  --chart-1: #34d399;
+  --chart-2: #fbbf24;
+  --chart-3: #6ee7b7;
+  --chart-4: #a7f3d0;
+  --chart-5: #f59e0b;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -111,6 +137,12 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6ee7b7;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #065f46;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #34d399;
 }
 
 /* Audio player styling */
