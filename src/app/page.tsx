@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { surahs, introductions, type Surah, type SurahAudio } from "@/lib/surah-data";
 import { asmaUlHusna } from "@/lib/asma-ul-husna";
 import { paras } from "@/lib/quran-paras";
-import { getSurahMeta, getHizbRange } from "@/lib/surah-meta";
+import { getGlobalRuku, getHizbForPosition } from "@/lib/ruku-boundaries";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,8 +134,9 @@ export default function Home() {
   const [quranError, setQuranError] = useState("");
   const [quranRetryKey, setQuranRetryKey] = useState(0);
   const quranLoadingRef = useRef(false);
-  const [visibleSurahId, setVisibleSurahId] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Track visible ayah for dynamic metadata
+  const [visibleAyah, setVisibleAyah] = useState<{ surah: number; ayahInSurah: number; globalAyahIndex: number } | null>(null);
 
   // Restore state from localStorage on mount
   useEffect(() => {
@@ -548,7 +549,7 @@ export default function Home() {
     setQuranLoading(true);
     setQuranError("");
     setParaSurahsData([]);
-    setVisibleSurahId(para.surahs[0]?.id || null);
+    setVisibleAyah(null);
 
     // Fetch all surahs in this para in parallel
     const fetches = para.surahs.map(s =>
@@ -565,7 +566,6 @@ export default function Home() {
     Promise.all(fetches)
       .then(results => {
         setParaSurahsData(results);
-        if (results.length > 0) setVisibleSurahId(results[0].surah);
       })
       .catch(() => {
         setQuranError("Failed to load. Check your internet connection.");
@@ -576,39 +576,59 @@ export default function Home() {
       });
   }, [activeTab, selectedPara, quranRetryKey]);
 
-  // IntersectionObserver to track which surah is visible for dynamic metadata
+  // IntersectionObserver to track which ayah is visible for dynamic metadata
   useEffect(() => {
     if (paraSurahsData.length === 0) return;
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const observers: IntersectionObserver[] = [];
-    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          const id = Number(entry.target.getAttribute("data-surah-id"));
-          if (id) setVisibleSurahId(id);
+    // Build a map of global ayah index -> {surah, ayahInSurah} for quick lookup
+    // This lets us compute ruku/hizb from the visible ayah
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the entry closest to the center-top of the viewport
+        let bestEntry: IntersectionObserverEntry | null = null;
+        let bestRatio = -1;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const rect = entry.boundingClientRect;
+            const containerRect = container.getBoundingClientRect();
+            // How close is this ayah to the top 30% of the visible container
+            const targetY = containerRect.top + containerRect.height * 0.15;
+            const dist = Math.abs(rect.top - targetY);
+            const ratio = 1 - dist / containerRect.height;
+            if (ratio > bestRatio) {
+              bestRatio = ratio;
+              bestEntry = entry;
+            }
+          }
         }
+        if (bestEntry) {
+          const el = bestEntry.target as HTMLElement;
+          const surah = Number(el.getAttribute("data-surah"));
+          const ayahInSurah = Number(el.getAttribute("data-ayah"));
+          const globalIdx = Number(el.getAttribute("data-global-idx"));
+          if (surah && ayahInSurah) {
+            setVisibleAyah({ surah, ayahInSurah, globalAyahIndex: globalIdx });
+          }
+        }
+      },
+      {
+        root: container,
+        rootMargin: "-10% 0px -70% 0px",
+        threshold: 0,
       }
-    };
+    );
 
     // Small delay to ensure DOM elements exist
     const timer = setTimeout(() => {
-      const sectionEls = container.querySelectorAll("[data-surah-id]");
-      sectionEls.forEach(el => {
-        const obs = new IntersectionObserver(handleIntersect, {
-          root: container,
-          rootMargin: "-30% 0px -60% 0px",
-          threshold: 0,
-        });
-        obs.observe(el);
-        observers.push(obs);
-      });
-    }, 100);
+      const ayahEls = container.querySelectorAll("[data-ayah]");
+      ayahEls.forEach((el) => observer.observe(el));
+    }, 200);
 
     return () => {
       clearTimeout(timer);
-      observers.forEach(obs => obs.disconnect());
+      observer.disconnect();
     };
   }, [paraSurahsData]);
 
@@ -852,24 +872,36 @@ export default function Home() {
 
                 {/* Dynamic metadata bar - updates on scroll */}
                 {(() => {
-                  const visibleSurah = paraSurahsData.find(s => s.surah === visibleSurahId) || paraSurahsData[0];
-                  if (!visibleSurah) return null;
-                  const meta = getSurahMeta(visibleSurah.surah);
-                  const [hizbStart] = getHizbRange(selectedPara);
+                  const currentSurahData = visibleAyah
+                    ? paraSurahsData.find(s => s.surah === visibleAyah.surah) || paraSurahsData[0]
+                    : paraSurahsData[0];
+                  if (!currentSurahData) return null;
+                  
+                  const currentSurahNum = visibleAyah?.surah || currentSurahData.surah;
+                  const currentAyahNum = visibleAyah?.ayahInSurah || (currentSurahData._fromAyah || 1);
+                  
+                  // Compute dynamic ruku number based on visible ayah
+                  const globalRuku = getGlobalRuku(currentSurahNum, currentAyahNum);
+                  
+                  // Compute dynamic hizb: first or second half of para based on scroll position
+                  const totalAyahsInPara = paraSurahsData.reduce((sum, s) => sum + s.ayahs.length, 0);
+                  const scrolledIdx = visibleAyah?.globalAyahIndex ?? 0;
+                  const currentHizb = getHizbForPosition(selectedPara, totalAyahsInPara, scrolledIdx);
+                  
                   return (
                     <div className="border-b border-emerald-200 bg-emerald-50/50 px-2 sm:px-3 py-2 flex items-center justify-around gap-1.5 text-[10px] sm:text-xs" dir="rtl">
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">الرُّكُوعُ</span>
-                        <span className="font-bold text-emerald-800">{toArabicNumeral(meta?.rukus || 0)}</span>
+                        <span className="font-bold text-emerald-800">{toArabicNumeral(globalRuku)}</span>
                       </div>
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">سورة</span>
-                        <span className="font-bold text-emerald-800" dir="rtl">{visibleSurah.nameArabic}</span>
-                        <span className="text-muted-foreground">({toArabicNumeral(visibleSurah.surah)})</span>
+                        <span className="font-bold text-emerald-800" dir="rtl">{currentSurahData.nameArabic}</span>
+                        <span className="text-muted-foreground">({toArabicNumeral(currentSurahNum)})</span>
                       </div>
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">الحزب</span>
-                        <span className="font-bold text-emerald-800">{toArabicNumeral(hizbStart)}</span>
+                        <span className="font-bold text-emerald-800">{toArabicNumeral(currentHizb)}</span>
                       </div>
                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-emerald-200 bg-white shadow-sm whitespace-nowrap">
                         <span className="text-muted-foreground">جزء</span>
@@ -881,7 +913,15 @@ export default function Home() {
 
                 {/* Scrollable content: all surahs in this para */}
                 <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto custom-scrollbar bg-[#faf8f0]">
-                  {paraSurahsData.map((surahData, sIdx) => (
+                  {(() => {
+                    // Precompute cumulative ayah offsets for global index
+                    const cumOffsets: number[] = [];
+                    let running = 0;
+                    for (const sd of paraSurahsData) {
+                      cumOffsets.push(running);
+                      running += sd.ayahs.length;
+                    }
+                    return paraSurahsData.map((surahData, sIdx) => (
                     <div key={surahData.surah} data-surah-id={surahData.surah} className="px-3 sm:px-6 py-4">
                       {/* Surah heading for multi-surah paras */}
                       {paraSurahsData.length > 1 && (
@@ -896,14 +936,20 @@ export default function Home() {
                       )}
                       {/* Mushaf-style continuous text */}
                       <div dir="rtl" lang="ar" className="text-2xl sm:text-[28px] md:text-3xl text-gray-900 leading-[2.8] sm:leading-[3] text-justify font-normal" style={{ fontFamily: "'Amiri Quran', 'Amiri', serif" }}>
-                        {surahData.ayahs.map((ayah) => (
-                          <span key={ayah.number}>
-                            {ayah.arabic}
-                            <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
-                              <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
+                        {surahData.ayahs.map((ayah, aIdx) => (
+                            <span
+                              key={ayah.number}
+                              data-surah={surahData.surah}
+                              data-ayah={ayah.numberInSurah}
+                              data-global-idx={cumOffsets[sIdx] + aIdx}
+                              className="inline"
+                            >
+                              {ayah.arabic}
+                              <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
+                                <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
+                              </span>
                             </span>
-                          </span>
-                        ))}
+                          ))}
                       </div>
                       {/* Separator between surahs */}
                       {sIdx < paraSurahsData.length - 1 && (
@@ -914,7 +960,8 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  ));
+                  })()}
                 </div>
               </div>
             )}
