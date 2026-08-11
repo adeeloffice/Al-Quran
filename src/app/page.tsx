@@ -115,6 +115,7 @@ export default function Home() {
         if (s.activeTab) setActiveTab(s.activeTab);
         if (s.volume !== undefined) setVolume(s.volume);
         if (s.isMuted !== undefined) setIsMuted(s.isMuted);
+        if (s.prayerNotifEnabled) setPrayerNotifEnabled(true);
 
         if (s.trackUrl) {
           const track: SurahAudio = { url: s.trackUrl, title: s.trackTitle || "" };
@@ -139,14 +140,14 @@ export default function Home() {
 
   // Save state to localStorage on changes
   useEffect(() => {
-    const state: any = { entered, activeTab, volume, isMuted };
+    const state: any = { entered, activeTab, volume, isMuted, prayerNotifEnabled };
     if (currentTrack) {
       state.trackUrl = currentTrack.url;
       state.trackTitle = currentTrack.title;
       if (currentSurah) state.surahId = currentSurah.id;
     }
     try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
-  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah]);
+  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, prayerNotifEnabled]);
 
   // Restore audio position after track loads (only if same track URL)
   useEffect(() => {
