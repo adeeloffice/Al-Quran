@@ -963,8 +963,9 @@ export default function Home() {
                               {(() => {
                                 let txt = ayah.text;
                                 if (surahData._fromAyah === 1 && ayah.numberInSurah === 1 && surahData.surah !== 1 && surahData.surah !== 9) {
-                                  const re = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ /;
-                                  if (re.test(txt)) txt = txt.replace(re, '');
+                                  const needle = 'ٱلرَّحِيمِ'.normalize('NFC');
+                                  const idx = txt.normalize('NFC').indexOf(needle);
+                                  if (idx !== -1) txt = txt.substring(idx + needle.length).replace(/^[\s\uFEFF]+/, '');
                                 }
                                 return txt;
                               })()}
