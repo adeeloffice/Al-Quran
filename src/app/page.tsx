@@ -553,7 +553,7 @@ export default function Home() {
   }, []);
 
   const tasbeehPct = tasbeehTarget > 0 ? (tasbeehCount / tasbeehTarget) * 100 : 0;
-  const tasbeehCircumference = 2 * Math.PI * 90;
+  const tasbeehCircumference = 2 * Math.PI * 98;
   const tasbeehDashOffset = tasbeehCircumference - (tasbeehPct / 100) * tasbeehCircumference;
 
   // Save/restore tasbeeh state
@@ -905,14 +905,14 @@ export default function Home() {
               <p className="text-2xl mb-1" dir="rtl">{tasbeehArabic}</p>
               <p className="text-sm text-muted-foreground mb-6">{tasbeehName} — {tasbeehTarget} times</p>
 
-              <div className="relative w-52 h-52 flex items-center justify-center mb-6">
-                <svg className="absolute inset-0 -rotate-90" width="208" height="208" viewBox="0 0 208 208">
-                  <circle cx="104" cy="104" r="90" fill="none" stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'} strokeWidth="10" />
+              <div className="relative w-56 h-56 flex items-center justify-center mb-6">
+                <svg className="absolute inset-0 -rotate-90" width="224" height="224" viewBox="0 0 224 224">
+                  <circle cx="112" cy="112" r="98" fill="none" stroke={document.documentElement.classList.contains('dark') ? '#1f2937' : '#d1fae5'} strokeWidth="12" />
                   <circle
-                    cx="104" cy="104" r="90"
+                    cx="112" cy="112" r="98"
                     fill="none"
                     stroke="#047857"
-                    strokeWidth="10"
+                    strokeWidth="12"
                     strokeLinecap="round"
                     strokeDasharray={tasbeehCircumference}
                     strokeDashoffset={tasbeehDashOffset}
@@ -921,12 +921,12 @@ export default function Home() {
                 </svg>
                 <button
                   onClick={handleTasbeehTap}
-                  className="relative z-10 w-40 h-40 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border-2 border-emerald-200 dark:border-emerald-700 flex flex-col items-center justify-center active:scale-95 active:bg-emerald-100 dark:active:bg-emerald-800/40 transition-all select-none"
+                  className="relative z-10 w-44 h-44 rounded-full bg-emerald-700 border-4 border-emerald-600 flex flex-col items-center justify-center active:scale-95 active:bg-emerald-800 transition-all select-none shadow-lg shadow-emerald-200 dark:shadow-emerald-900/50"
                 >
-                  <span className="text-5xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                  <span className="text-6xl font-extrabold text-white tabular-nums drop-shadow">
                     {tasbeehCount}
                   </span>
-                  <span className="text-sm text-muted-foreground mt-1">of {tasbeehTarget}</span>
+                  <span className="text-sm font-medium text-emerald-200 mt-1">of {tasbeehTarget}</span>
                 </button>
               </div>
 
