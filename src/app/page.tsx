@@ -993,30 +993,6 @@ export default function Home() {
               <p className="text-sm text-muted-foreground mt-1">The 99 Beautiful Names of Allah</p>
             </div>
 
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, transliteration, or meaning..."
-                className="pl-10 h-11 bg-white dark:bg-gray-800 border-emerald-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
-                value={asmaSearch}
-                onChange={(e) => setAsmaSearch(e.target.value)}
-              />
-            </div>
-
-            {/* Count & Clear */}
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs text-muted-foreground">
-                Showing {filteredAsma.length} of {asmaUlHusna.length} names
-              </p>
-              {asmaSearch && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-emerald-600 hover:text-emerald-700" onClick={() => setAsmaSearch("")}>
-                  <X className="w-3 h-3 mr-1" />
-                  Clear
-                </Button>
-              )}
-            </div>
-
             {/* Video */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-3 mb-5">
               <div className="aspect-video w-full rounded-lg overflow-hidden">
