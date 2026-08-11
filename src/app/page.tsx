@@ -960,7 +960,14 @@ export default function Home() {
                               data-global-idx={globalIdx}
                               className="inline"
                             >
-                              {ayah.text}
+                              {(() => {
+                                let txt = ayah.text;
+                                if (surahData._fromAyah === 1 && ayah.numberInSurah === 1 && surahData.surah !== 1 && surahData.surah !== 9) {
+                                  const re = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ /;
+                                  if (re.test(txt)) txt = txt.replace(re, '');
+                                }
+                                return txt;
+                              })()}
                               {isSajda && <span className="inline-flex items-center justify-center align-middle mx-0.5 text-amber-700" style={{fontFamily:"'Amiri Quran',serif",fontSize:"1.1rem"}}>۩</span>}
                               <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
                                 <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
