@@ -641,7 +641,6 @@ export default function Home() {
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: "asmaulhusna", label: "Asma ul Husna", icon: <Sparkles className="w-4 h-4" /> },
-    { key: "recitation", label: "Recitation", icon: <Headphones className="w-4 h-4" /> },
     { key: "surahs", label: "Bayan ul Quran", icon: <Headphones className="w-4 h-4" /> },
     { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
     { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
@@ -988,13 +987,38 @@ export default function Home() {
 
         {activeTab === "asmaulhusna" && (
           <div>
+            {/* Header */}
             <div className="text-center mb-4">
               <h2 className="text-2xl sm:text-3xl font-bold text-emerald-800" dir="rtl">أسماء الله الحسنى</h2>
               <p className="text-sm text-muted-foreground mt-1">The 99 Beautiful Names of Allah</p>
             </div>
 
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-3 mb-6">
+            {/* Search */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, transliteration, or meaning..."
+                className="pl-10 h-11 bg-white dark:bg-gray-800 border-emerald-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-xl"
+                value={asmaSearch}
+                onChange={(e) => setAsmaSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Count & Clear */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredAsma.length} of {asmaUlHusna.length} names
+              </p>
+              {asmaSearch && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-emerald-600 hover:text-emerald-700" onClick={() => setAsmaSearch("")}>
+                  <X className="w-3 h-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Video */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-3 mb-5">
               <div className="aspect-video w-full rounded-lg overflow-hidden">
                 <iframe
                   className="w-full h-full"
@@ -1007,16 +1031,26 @@ export default function Home() {
               <p className="text-xs text-center text-muted-foreground mt-2">Listen to the 99 Names of Allah</p>
             </div>
 
+            {/* Names grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {filteredAsma.map((name) => (
-                <div key={name.id} className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4 hover:border-emerald-300 transition-colors">
+              {filteredAsma.map((name, idx) => (
+                <div key={name.id} className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group">
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 text-sm font-semibold">{name.id}</div>
-                    <div className="min-w-0">
-                      <p className="text-xl sm:text-2xl text-emerald-800 font-medium" dir="rtl">{name.arabic}</p>
-                      <p className="font-semibold text-sm text-foreground mt-1">{name.transliteration}</p>
-                      <p className="text-xs text-muted-foreground" dir="rtl" lang="ur" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}>{name.meaningUrdu}</p>
-                      <p className="text-xs text-muted-foreground/70">{name.meaning}</p>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold transition-colors ${
+                      idx % 3 === 0
+                        ? 'bg-amber-50 text-amber-700 group-hover:bg-amber-100'
+                        : idx % 3 === 1
+                        ? 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100'
+                        : 'bg-teal-50 text-teal-700 group-hover:bg-teal-100'
+                    }`}
+                    >
+                      {name.id}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-2xl sm:text-3xl text-emerald-800 font-medium leading-tight" dir="rtl" style={{ fontFamily: "'Amiri Quran', 'Amiri', serif" }}>{name.arabic}</p>
+                      <p className="font-semibold text-sm text-foreground mt-1.5">{name.transliteration}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5" dir="rtl" lang="ur" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}>{name.meaningUrdu}</p>
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">{name.meaning}</p>
                     </div>
                   </div>
                 </div>
@@ -1028,24 +1062,6 @@ export default function Home() {
                 <p>No names found</p>
               </div>
             )}
-          </div>
-        )}
-
-        
-        {activeTab === "recitation" && (
-          <div>
-            <div className="text-center mb-4">
-              <h2 className="text-2xl sm:text-3xl font-bold text-emerald-800" dir="rtl">اقراءۃ</h2>
-              <p className="text-sm text-muted-foreground mt-1">Quran Recitation by Qari Abdul Basit</p>
-            </div>
-            <iframe
-              className="w-full border border-emerald-200 rounded-xl"
-              style={{ height: "75vh" }}
-              src="https://www.quranurdu.com/Q_Basit/"
-              title="Quran Recitation - Qari Abdul Basit"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
           </div>
         )}
 

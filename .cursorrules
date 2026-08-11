@@ -1,0 +1,21 @@
+# Agent Context Rules for Al-Quran Project
+
+## NEVER read or modify these files - they are too large for context:
+- src/lib/quran-data.json
+- src/lib/quran-uthmani.json
+- quran_mishary.json
+- quran_30p.json
+- quran_page.json
+- db/custom.db
+
+## When working with Quran data:
+- The uthmani JSON is imported as `uthmaniData` in page.tsx - treat it as opaque data
+- Focus on the TypeScript logic, not the JSON content
+- surah-data.ts, asma-ul-husna.ts, quran-paras.ts, ruku-boundaries.ts are safe to read
+
+## Architecture:
+- Single-page Next.js app with tab-based navigation
+- Tabs: Asma ul Husna, Bayan ul Quran, Quran, Prayer
+- Audio player uses HTML5 Audio with proxy endpoint
+- Prayer times fetched via /api/prayer with geolocation
+- Quran reading is para (juz) based with uthmani script
