@@ -959,7 +959,7 @@ export default function Home() {
                                 }
                                 return txt;
                               })()}
-                              {isSajda && <span className="inline-flex items-center justify-center align-middle mx-0.5 text-amber-700" style={{fontFamily:"'Amiri Quran',serif",fontSize:"1.1rem"}}>۩</span>}
+                              {isSajda && <span className="inline-flex items-center justify-center align-middle mx-1" style={{width:"1.6rem",height:"1.6rem",borderRadius:"50%",border:"1.5px solid #92400e",backgroundColor:"#fef3c7",fontFamily:"'Amiri Quran',serif",fontSize:"0.55rem",color:"#92400e",lineHeight:1}}>سجدة</span>}
                               <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
                                 <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
                               </span>
