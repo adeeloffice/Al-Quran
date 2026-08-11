@@ -358,7 +358,7 @@ export const surahs: Surah[] = [
     audio: [{ title: "Nooh", url: `${BASE_URL}071-NOOH.MP3` }]
   },
   {
-    id: 72, number: "072", nameArabic: "الجن", nameUrdu: "الجن", nameEnglish: "Al-Jinn", ayahCount: 28, type: "meccan",
+    id: 72, number: "072", nameArabic: "الجن", nameUrdu: "الجن", nameEnglish: "Al-Jinn", ayahCount: 28, type: "medinan",
     audio: [{ title: "Al-Jinn", url: `${BASE_URL}072-AL-JINN.mp3` }]
   },
   {
@@ -462,11 +462,11 @@ export const surahs: Surah[] = [
     audio: [{ title: "Al-Qadr", url: `${BASE_URL}097-Al-Qadr.mp3` }]
   },
   {
-    id: 98, number: "098", nameArabic: "البينة", nameUrdu: "البینہ", nameEnglish: "Al-Bayyinah", ayahCount: 8, type: "medinan",
+    id: 98, number: "098", nameArabic: "البينة", nameUrdu: "البینہ", nameEnglish: "Al-Bayyinah", ayahCount: 8, type: "meccan",
     audio: [{ title: "Al-Bayyinah", url: `${BASE_URL}098-AL-BAYYINAH.mp3` }]
   },
   {
-    id: 99, number: "099", nameArabic: "الزلزلة", nameUrdu: "الزلزلہ", nameEnglish: "Az-Zilzaal", ayahCount: 8, type: "medinan",
+    id: 99, number: "099", nameArabic: "الزلزلة", nameUrdu: "الزلزلہ", nameEnglish: "Az-Zilzaal", ayahCount: 8, type: "meccan",
     audio: [{ title: "Az-Zilzaal", url: `${BASE_URL}099-AZ-ZILZAAL.mp3` }]
   },
   {
@@ -510,7 +510,7 @@ export const surahs: Surah[] = [
     audio: [{ title: "Al-Kaafiroon", url: `${BASE_URL}109-AL-KAFIROON.mp3` }]
   },
   {
-    id: 110, number: "110", nameArabic: "النصر", nameUrdu: "النصر", nameEnglish: "An-Nasr", ayahCount: 3, type: "medinan",
+    id: 110, number: "110", nameArabic: "النصر", nameUrdu: "النصر", nameEnglish: "An-Nasr", ayahCount: 3, type: "meccan",
     audio: [{ title: "An-Nasr", url: `${BASE_URL}110-AN-NASR.mp3` }]
   },
   {

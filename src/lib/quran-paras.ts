@@ -110,11 +110,11 @@ export const paras: ParaInfo[] = [
   },
   {
     id: 13, nameUrdu: "وَمَا أُبَرِّئُ", nameEnglish: "Wa Ma Ubriee",
-    startSurah: 12, startAyah: 53, endSurah: 14, endAyah: 10,
+    startSurah: 12, startAyah: 53, endSurah: 14, endAyah: 52,
     surahs: [
       { id: 12, fromAyah: 53, toAyah: 111 },
       { id: 13, fromAyah: 1, toAyah: 43 },
-      { id: 14, fromAyah: 1, toAyah: 10 },
+      { id: 14, fromAyah: 1, toAyah: 52 },
     ],
   },
   {
