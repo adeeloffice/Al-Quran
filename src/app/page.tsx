@@ -32,6 +32,7 @@ import {
   Sun,
   Moon,
   LogOut,
+  RotateCcw,
 } from "lucide-react";
 
 function formatTime(seconds: number): string {
@@ -52,7 +53,14 @@ function proxyUrl(originalUrl: string): string {
   return `/api/audio?url=${encodeURIComponent(originalUrl)}`;
 }
 
-type TabType = "surahs" | "prayer";
+type TabType = "surahs" | "prayer" | "tasbeeh";
+
+interface TasbeehPreset {
+  id: string;
+  name: string;
+  arabic: string;
+  target: number;
+}
 
 interface PrayerTime {
   name: string;
@@ -464,9 +472,93 @@ export default function Home() {
 
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
+  // === Tasbeeh Counter ===
+  const TASBEEH_PRESETS: TasbeehPreset[] = [
+    { id: "subhanallah-33", name: "SubhanAllah", arabic: "سُبْحَانَ اللّٰهِ", target: 33 },
+    { id: "alhamdulillah-33", name: "Alhamdulillah", arabic: "اَلْحَمْدُ لِلّٰهِ", target: 33 },
+    { id: "allahuakbar-34", name: "Allahu Akbar", arabic: "اَللّٰهُ أَكْبَرُ", target: 34 },
+    { id: "subhanallah-100", name: "SubhanAllah", arabic: "سُبْحَانَ اللّٰهِ", target: 100 },
+    { id: "alhamdulillah-100", name: "Alhamdulillah", arabic: "اَلْحَمْدُ لِلّٰهِ", target: 100 },
+    { id: "allahuakbar-100", name: "Allahu Akbar", arabic: "اَللّٰهُ أَكْبَرُ", target: 100 },
+    { id: "lailaha-100", name: "La ilaha illAllah", arabic: "لَا إِلٰهَ إِلَّا اللّٰهُ", target: 100 },
+    { id: "astaghfar-100", name: "Astaghfar", arabic: "أَسْتَغْفِرُ اللّٰهَ", target: 100 },
+    { id: "salawat-100", name: "Durood / Salawat", arabic: "اَللّٰهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ", target: 100 },
+  ];
+
+  const [tasbeehCount, setTasbeehCount] = useState(0);
+  const [tasbeehTarget, setTasbeehTarget] = useState(33);
+  const [tasbeehName, setTasbeehName] = useState("SubhanAllah");
+  const [tasbeehArabic, setTasbeehArabic] = useState("سُبْحَانَ اللّٰهِ");
+  const [tasbeehTotal, setTasbeehTotal] = useState(0);
+  const [customTasbeeh, setCustomTasbeeh] = useState("");
+  const [customTarget, setCustomTarget] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+
+  const handleTasbeehTap = useCallback(() => {
+    setTasbeehCount((prev) => {
+      const next = prev + 1;
+      if (next >= tasbeehTarget) {
+        setTasbeehTotal((t) => t + tasbeehTarget);
+        // Vibrate on completion
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+        return 0;
+      }
+      if (navigator.vibrate) navigator.vibrate(30);
+      return next;
+    });
+  }, [tasbeehTarget]);
+
+  const resetTasbeeh = useCallback(() => {
+    setTasbeehCount(0);
+  }, []);
+
+  const selectPreset = useCallback((p: TasbeehPreset) => {
+    setTasbeehName(p.name);
+    setTasbeehArabic(p.arabic);
+    setTasbeehTarget(p.target);
+    setTasbeehCount(0);
+    setShowCustom(false);
+  }, []);
+
+  const applyCustomTasbeeh = useCallback(() => {
+    const name = customTasbeeh.trim();
+    const target = parseInt(customTarget) || 33;
+    if (name) {
+      setTasbeehName(name);
+      setTasbeehArabic(name);
+      setTasbeehTarget(target);
+      setTasbeehCount(0);
+      setShowCustom(false);
+    }
+  }, [customTasbeeh, customTarget]);
+
+  const tasbeehPct = tasbeehTarget > 0 ? (tasbeehCount / tasbeehTarget) * 100 : 0;
+  const tasbeehCircumference = 2 * Math.PI * 90;
+  const tasbeehDashOffset = tasbeehCircumference - (tasbeehPct / 100) * tasbeehCircumference;
+
+  // Save/restore tasbeeh state
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("tasbeeh-state");
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.count !== undefined) setTasbeehCount(s.count);
+        if (s.target) setTasbeehTarget(s.target);
+        if (s.name) setTasbeehName(s.name);
+        if (s.arabic) setTasbeehArabic(s.arabic);
+        if (s.total !== undefined) setTasbeehTotal(s.total);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem("tasbeeh-state", JSON.stringify({ count: tasbeehCount, target: tasbeehTarget, name: tasbeehName, arabic: tasbeehArabic, total: tasbeehTotal })); } catch {}
+  }, [tasbeehCount, tasbeehTarget, tasbeehName, tasbeehArabic, tasbeehTotal]);
+
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: "surahs", label: "Bayan ul Quran", icon: <Headphones className="w-4 h-4" /> },
     { key: "prayer", label: "Prayer Times", icon: <Compass className="w-4 h-4" /> },
+    { key: "tasbeeh", label: "Tasbeeh", icon: <span className="text-sm">📿</span> },
   ];
 
   // Landing screen
@@ -708,6 +800,117 @@ export default function Home() {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === "tasbeeh" && (
+          <div className="space-y-5">
+            {/* Preset Selector */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4">
+              <p className="text-sm font-semibold text-foreground mb-3">Select Tasbeeh</p>
+              <div className="flex flex-wrap gap-2">
+                {TASBEEH_PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => selectPreset(p)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      tasbeehName === p.name && tasbeehTarget === p.target
+                        ? "bg-emerald-700 text-white border-emerald-700"
+                        : "bg-white dark:bg-gray-700 text-foreground border-gray-200 dark:border-gray-600 hover:border-emerald-400"
+                    }`}
+                  >
+                    {p.name} ({p.target})
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowCustom(!showCustom)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    showCustom
+                      ? "bg-emerald-700 text-white border-emerald-700"
+                      : "bg-white dark:bg-gray-700 text-foreground border-gray-200 dark:border-gray-600 hover:border-emerald-400"
+                  }`}
+                >
+                  + Custom
+                </button>
+              </div>
+              {showCustom && (
+                <div className="mt-3 flex gap-2">
+                  <Input
+                    placeholder="Tasbeeh name"
+                    value={customTasbeeh}
+                    onChange={(e) => setCustomTasbeeh(e.target.value)}
+                    className="flex-1 h-9 text-sm"
+                  />
+                  <Input
+                    placeholder="Count"
+                    type="number"
+                    value={customTarget}
+                    onChange={(e) => setCustomTarget(e.target.value)}
+                    className="w-20 h-9 text-sm"
+                  />
+                  <Button onClick={applyCustomTasbeeh} size="sm" className="bg-emerald-700 hover:bg-emerald-800 h-9 px-3">
+                    Go
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Counter Circle */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-6 flex flex-col items-center">
+              <p className="text-2xl mb-1" dir="rtl">{tasbeehArabic}</p>
+              <p className="text-sm text-muted-foreground mb-6">{tasbeehName} — {tasbeehTarget} times</p>
+
+              <div className="relative w-52 h-52 flex items-center justify-center mb-6">
+                <svg className="absolute inset-0 -rotate-90" width="208" height="208" viewBox="0 0 208 208">
+                  <circle cx="104" cy="104" r="90" fill="none" stroke={document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'} strokeWidth="10" />
+                  <circle
+                    cx="104" cy="104" r="90"
+                    fill="none"
+                    stroke="#047857"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={tasbeehCircumference}
+                    strokeDashoffset={tasbeehDashOffset}
+                    className="transition-all duration-200"
+                  />
+                </svg>
+                <button
+                  onClick={handleTasbeehTap}
+                  className="relative z-10 w-40 h-40 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border-2 border-emerald-200 dark:border-emerald-700 flex flex-col items-center justify-center active:scale-95 active:bg-emerald-100 dark:active:bg-emerald-800/40 transition-all select-none"
+                >
+                  <span className="text-5xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                    {tasbeehCount}
+                  </span>
+                  <span className="text-sm text-muted-foreground mt-1">of {tasbeehTarget}</span>
+                </button>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetTasbeeh}
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </Button>
+            </div>
+
+            {/* Total Count */}
+            {tasbeehTotal > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4 text-center">
+                <p className="text-xs text-muted-foreground">Total completed</p>
+                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">{tasbeehTotal}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTasbeehTotal(0)}
+                  className="text-xs text-muted-foreground mt-1 h-7"
+                >
+                  Reset total
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </main>
