@@ -655,7 +655,7 @@ export default function Home() {
               </a>
               <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-bold shadow-md hover:shadow-lg" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <span>Lock</span>
               </Button>
             </div>
           </div>
