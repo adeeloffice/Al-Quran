@@ -1008,7 +1008,7 @@ export default function Home() {
             </div>
 
             {/* Names grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {filteredAsma.map((name, idx) => (
                 <div key={name.id} className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group">
                   <div className="flex items-start gap-3">
@@ -1058,47 +1058,6 @@ export default function Home() {
                 <p className="text-xs text-center text-muted-foreground mt-2">
                   Location: <span className="font-medium text-foreground">{prayerData.meta?.locationName || prayerData.meta?.timezone}</span>
                 </p>
-              )}
-            </div>
-
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Navigation className="w-5 h-5 text-emerald-700" />
-                <h3 className="text-lg font-semibold text-foreground">Qibla Direction</h3>
-              </div>
-              {qiblaAngle !== null ? (
-                <div className="flex flex-col items-center">
-                  <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-emerald-200 relative bg-gradient-to-b from-emerald-50 to-white mb-3">
-                    {/* Compass letters */}
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-bold text-emerald-600">N</div>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-400">S</div>
-                    <div className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">W</div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">E</div>
-                    {/* Needle: rotates opposite to device heading so it always points to Qibla */}
-                    <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) rotate(${deviceHeading !== null ? qiblaAngle - deviceHeading : qiblaAngle}deg)`, transformOrigin: 'center center', transition: 'transform 0.3s ease-out' }}>
-                      <div className="w-1.5 h-20 bg-gradient-to-t from-emerald-700 to-amber-400 rounded-full relative">
-                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-r-[7px] border-b-[11px] border-l-transparent border-r-transparent border-b-amber-500" />
-                      </div>
-                    </div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-700" />
-                  </div>
-                  <p className="text-sm text-center text-muted-foreground">
-                    Qibla: <span className="font-semibold text-emerald-700">{Math.round(qiblaAngle)}°</span> from North
-                  </p>
-                  <p className="text-xs text-center text-amber-600 mt-2">Hold phone flat and rotate to find Qibla</p>
-                  {hasGyro === null && typeof (DeviceOrientationEvent as any).requestPermission === "function" && (
-                    <Button size="sm" variant="outline" className="mt-2 border-emerald-300 text-emerald-700 text-xs" onClick={requestOrientationPermission}>
-                      <Navigation className="w-3.5 h-3.5 mr-1" />
-                      Enable Compass
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-                  <MapPin className="w-5 h-5 mr-2 opacity-50" />
-                  Select a location to see Qibla direction
-                </div>
               )}
             </div>
 
