@@ -491,19 +491,23 @@ export default function Home() {
   const [tasbeehArabic, setTasbeehArabic] = useState("سُبْحَانَ اللّٰهِ");
   const [tasbeehTotal, setTasbeehTotal] = useState(0);
   const [customTasbeeh, setCustomTasbeeh] = useState("");
+  const [customArabic, setCustomArabic] = useState("");
   const [customTarget, setCustomTarget] = useState("");
   const [showCustom, setShowCustom] = useState(false);
+  const [customPresets, setCustomPresets] = useState<TasbeehPreset[]>(() => {
+    try { return JSON.parse(localStorage.getItem("tasbeeh-custom") || "[]"); } catch { return []; }
+  });
+
+  const allPresets = useMemo(() => [...TASBEEH_PRESETS, ...customPresets], [customPresets]);
 
   const handleTasbeehTap = useCallback(() => {
     setTasbeehCount((prev) => {
       const next = prev + 1;
       if (next >= tasbeehTarget) {
         setTasbeehTotal((t) => t + tasbeehTarget);
-        // Vibrate on completion
         if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
         return 0;
       }
-      if (navigator.vibrate) navigator.vibrate(30);
       return next;
     });
   }, [tasbeehTarget]);
@@ -522,15 +526,33 @@ export default function Home() {
 
   const applyCustomTasbeeh = useCallback(() => {
     const name = customTasbeeh.trim();
+    const arabic = customArabic.trim() || name;
     const target = parseInt(customTarget) || 33;
     if (name) {
+      const newPreset: TasbeehPreset = { id: `custom-${Date.now()}`, name, arabic, target };
+      setCustomPresets((prev) => {
+        const updated = [...prev, newPreset];
+        try { localStorage.setItem("tasbeeh-custom", JSON.stringify(updated)); } catch {}
+        return updated;
+      });
       setTasbeehName(name);
-      setTasbeehArabic(name);
+      setTasbeehArabic(arabic);
       setTasbeehTarget(target);
       setTasbeehCount(0);
+      setCustomTasbeeh("");
+      setCustomArabic("");
+      setCustomTarget("");
       setShowCustom(false);
     }
-  }, [customTasbeeh, customTarget]);
+  }, [customTasbeeh, customArabic, customTarget]);
+
+  const deleteCustomPreset = useCallback((id: string) => {
+    setCustomPresets((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      try { localStorage.setItem("tasbeeh-custom", JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, []);
 
   const tasbeehPct = tasbeehTarget > 0 ? (tasbeehCount / tasbeehTarget) * 100 : 0;
   const tasbeehCircumference = 2 * Math.PI * 90;
@@ -807,52 +829,77 @@ export default function Home() {
           <div className="space-y-5">
             {/* Preset Selector */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4">
-              <p className="text-sm font-semibold text-foreground mb-3">Select Tasbeeh</p>
-              <div className="flex flex-wrap gap-2">
-                {TASBEEH_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => selectPreset(p)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      tasbeehName === p.name && tasbeehTarget === p.target
-                        ? "bg-emerald-700 text-white border-emerald-700"
-                        : "bg-white dark:bg-gray-700 text-foreground border-gray-200 dark:border-gray-600 hover:border-emerald-400"
-                    }`}
-                  >
-                    {p.name} ({p.target})
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-foreground">Select Tasbeeh</p>
                 <button
                   onClick={() => setShowCustom(!showCustom)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    showCustom
-                      ? "bg-emerald-700 text-white border-emerald-700"
-                      : "bg-white dark:bg-gray-700 text-foreground border-gray-200 dark:border-gray-600 hover:border-emerald-400"
-                  }`}
+                  className="text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
                 >
-                  + Custom
+                  {showCustom ? "Cancel" : "+ Add Custom"}
                 </button>
               </div>
               {showCustom && (
-                <div className="mt-3 flex gap-2">
+                <div className="mb-4 space-y-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
                   <Input
-                    placeholder="Tasbeeh name"
-                    value={customTasbeeh}
-                    onChange={(e) => setCustomTasbeeh(e.target.value)}
-                    className="flex-1 h-9 text-sm"
+                    placeholder="Arabic text (e.g. سُبْحَانَ اللّٰهِ)"
+                    value={customArabic}
+                    onChange={(e) => setCustomArabic(e.target.value)}
+                    className="h-9 text-sm"
+                    dir="rtl"
                   />
-                  <Input
-                    placeholder="Count"
-                    type="number"
-                    value={customTarget}
-                    onChange={(e) => setCustomTarget(e.target.value)}
-                    className="w-20 h-9 text-sm"
-                  />
-                  <Button onClick={applyCustomTasbeeh} size="sm" className="bg-emerald-700 hover:bg-emerald-800 h-9 px-3">
-                    Go
-                  </Button>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Name (e.g. SubhanAllah)"
+                      value={customTasbeeh}
+                      onChange={(e) => setCustomTasbeeh(e.target.value)}
+                      className="flex-1 h-9 text-sm"
+                    />
+                    <Input
+                      placeholder="Count"
+                      type="number"
+                      value={customTarget}
+                      onChange={(e) => setCustomTarget(e.target.value)}
+                      className="w-20 h-9 text-sm"
+                    />
+                    <Button onClick={applyCustomTasbeeh} size="sm" className="bg-emerald-700 hover:bg-emerald-800 h-9 px-4">
+                      Add
+                    </Button>
+                  </div>
                 </div>
               )}
+              <div className="space-y-2">
+                {allPresets.map((p) => {
+                  const isActive = tasbeehName === p.name && tasbeehTarget === p.target && tasbeehArabic === p.arabic;
+                  const isCustom = p.id.startsWith("custom-");
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => selectPreset(p)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left ${
+                        isActive
+                          ? "bg-emerald-700 text-white border-emerald-700"
+                          : "bg-white dark:bg-gray-700 text-foreground border-gray-200 dark:border-gray-600 hover:border-emerald-400"
+                      }`}
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-medium truncate" dir="rtl">{p.arabic}</span>
+                        <span className={`block text-xs mt-0.5 ${isActive ? "text-emerald-100" : "text-muted-foreground"}`}>{p.name} &middot; {p.target} times</span>
+                      </span>
+                      {isCustom && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); deleteCustomPreset(p.id); }}
+                          className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-xs ${
+                            isActive ? "bg-emerald-600 text-white hover:bg-red-500" : "bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40"
+                          }`}
+                          title="Delete"
+                        >
+                          ✕
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Counter Circle */}
