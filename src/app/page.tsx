@@ -5,7 +5,9 @@ import { useTheme } from "next-themes";
 import { surahs, introductions, type Surah, type SurahAudio } from "@/lib/surah-data";
 import { asmaUlHusna } from "@/lib/asma-ul-husna";
 import { paras } from "@/lib/quran-paras";
-import { getGlobalRuku, getHizbForPosition } from "@/lib/ruku-boundaries";
+import { getGlobalRuku, getHizbForPosition, getRukuForAyah, rukuBoundaries } from "@/lib/ruku-boundaries";
+import { SAJDA_AYAHS } from "@/lib/quran-markers";
+import uthmaniData from "@/lib/quran-uthmani.json";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,8 +83,7 @@ interface PrayerData {
 interface QuranAyah {
   number: number;
   numberInSurah: number;
-  arabic: string;
-  urdu: string;
+  text: string;
 }
 
 interface QuranSurah {
@@ -132,8 +133,6 @@ export default function Home() {
   const [paraSurahsData, setParaSurahsData] = useState<(QuranSurah & { _fromAyah?: number; _toAyah?: number })[]>([]);
   const [quranLoading, setQuranLoading] = useState(false);
   const [quranError, setQuranError] = useState("");
-  const [quranRetryKey, setQuranRetryKey] = useState(0);
-  const quranLoadingRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Track visible ayah for dynamic metadata
   const [visibleAyah, setVisibleAyah] = useState<{ surah: number; ayahInSurah: number; globalAyahIndex: number } | null>(null);
@@ -541,13 +540,12 @@ export default function Home() {
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
 
-  // Fetch all surahs for the selected Para
+  // Load all surahs for the selected Para from Uthmanic JSON data
   useEffect(() => {
-    if (activeTab !== "quran" || quranLoadingRef.current) return;
+    if (activeTab !== "quran") return;
     const para = paras.find(p => p.id === selectedPara);
     if (!para) return;
 
-    quranLoadingRef.current = true;
     setQuranLoading(true);
     setQuranError("");
     setParaSurahsData([]);
@@ -559,30 +557,29 @@ export default function Home() {
       paraBaseRukuRef.current = getGlobalRuku(firstSurahInPara.id, firstSurahInPara.fromAyah);
     }
 
-    // Fetch all surahs in this para in parallel
-    const fetches = para.surahs.map(s =>
-      fetch(`/api/quran?surah=${s.id}`)
-        .then(r => { if (!r.ok) throw new Error(`Surah ${s.id} not found`); return r.json(); })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          // Filter ayahs to para range and tag with range info
-          const filtered = data.ayahs.filter((a: QuranAyah) => a.numberInSurah >= s.fromAyah && a.numberInSurah <= s.toAyah);
-          return { ...data, ayahs: filtered, _fromAyah: s.fromAyah, _toAyah: s.toAyah };
-        })
-    );
-
-    Promise.all(fetches)
-      .then(results => {
-        setParaSurahsData(results);
-      })
-      .catch(() => {
-        setQuranError("Failed to load. Check your internet connection.");
-      })
-      .finally(() => {
-        quranLoadingRef.current = false;
-        setQuranLoading(false);
+    // Build para surahs from Uthmanic JSON data
+    const results: (QuranSurah & { _fromAyah?: number; _toAyah?: number })[] = [];
+    for (const s of para.surahs) {
+      const uthSurah = (uthmaniData as any).surahs.find((us: any) => us.number === s.id);
+      if (!uthSurah) continue;
+      const filteredAyahs: QuranAyah[] = uthSurah.ayahs
+        .filter((a: any) => a.numberInSurah >= s.fromAyah && a.numberInSurah <= s.toAyah)
+        .map((a: any) => ({ number: a.number, numberInSurah: a.numberInSurah, text: a.text }));
+      results.push({
+        surah: uthSurah.number,
+        name: uthSurah.englishName,
+        nameArabic: uthSurah.name,
+        totalAyahs: uthSurah.numberOfAyahs,
+        ayahs: filteredAyahs,
+        _fromAyah: s.fromAyah,
+        _toAyah: s.toAyah,
       });
-  }, [activeTab, selectedPara, quranRetryKey]);
+    }
+
+    setParaSurahsData(results);
+    setQuranLoading(false);
+  }, [activeTab, selectedPara]);
+
 
   // IntersectionObserver to track which ayah is visible for dynamic metadata
   useEffect(() => {
@@ -847,9 +844,6 @@ export default function Home() {
             {quranError && !quranLoading && (
               <div className="text-center py-12">
                 <p className="text-sm text-red-500 mb-3">{quranError}</p>
-                <Button onClick={() => setQuranRetryKey((k) => k + 1)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">
-                  Try Again
-                </Button>
               </div>
             )}
 
@@ -944,20 +938,38 @@ export default function Home() {
                       )}
                       {/* Mushaf-style continuous text */}
                       <div dir="rtl" lang="ar" className="text-2xl sm:text-[28px] md:text-3xl text-gray-900 leading-[2.8] sm:leading-[3] text-justify font-normal" style={{ fontFamily: "'Amiri Quran', 'Amiri', serif" }}>
-                        {surahData.ayahs.map((ayah, aIdx) => (
+                        {surahData.ayahs.map((ayah, aIdx) => {
+                          const boundaries = rukuBoundaries[surahData.surah];
+                          const isLastAyahOfRuku = boundaries ? (aIdx === surahData.ayahs.length - 1 || boundaries.includes(ayah.numberInSurah + 1)) : false;
+                          const isSajda = SAJDA_AYAHS[surahData.surah]?.includes(ayah.numberInSurah) || false;
+                          // Hizb quarter markers: approximate at ¼, ½, ¾ through the para's ayahs
+                          const totalParaAyahs = paraSurahsData.reduce((sum, s) => sum + s.ayahs.length, 0);
+                          const globalIdx = cumOffsets[sIdx] + aIdx;
+                          const frac = totalParaAyahs > 0 ? globalIdx / totalParaAyahs : 0;
+                          let hizbMarker: React.ReactNode = null;
+                          if (totalParaAyahs > 0) {
+                            if (Math.abs(frac - 0.25) < 0.008) hizbMarker = <span className="inline-flex items-center justify-center align-middle mx-1 text-emerald-700 text-sm font-bold">﴾ ¼ ﴿</span>;
+                            else if (Math.abs(frac - 0.5) < 0.008) hizbMarker = <span className="inline-flex items-center justify-center align-middle mx-1 text-emerald-700 text-sm font-bold">﴾ ½ ﴿</span>;
+                            else if (Math.abs(frac - 0.75) < 0.008) hizbMarker = <span className="inline-flex items-center justify-center align-middle mx-1 text-emerald-700 text-sm font-bold">﴾ ¾ ﴿</span>;
+                          }
+                          return (
                             <span
                               key={ayah.number}
                               data-surah={surahData.surah}
                               data-ayah={ayah.numberInSurah}
-                              data-global-idx={cumOffsets[sIdx] + aIdx}
+                              data-global-idx={globalIdx}
                               className="inline"
                             >
-                              {ayah.arabic}
+                              {ayah.text}
+                              {isSajda && <span className="inline-flex items-center justify-center align-middle mx-0.5 text-amber-700" style={{fontFamily:"'Amiri Quran',serif",fontSize:"1.1rem"}}>۩</span>}
                               <span className="inline-flex items-center justify-center align-middle mx-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-400 text-sm sm:text-base text-gray-800 relative" style={{ fontFamily: "'Amiri Quran', serif" }}>
                                 <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
                               </span>
+                              {isLastAyahOfRuku && <span className="inline-flex items-center justify-center mx-1.5 text-amber-800 align-middle" style={{fontFamily:"'Amiri Quran',serif",fontSize:"1.4rem"}}>ع</span>}
+                              {hizbMarker}
                             </span>
-                          ))}
+                          );
+                        })}
                       </div>
                       {/* Separator between surahs */}
                       {sIdx < paraSurahsData.length - 1 && (
