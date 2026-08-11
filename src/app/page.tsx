@@ -445,6 +445,28 @@ export default function Home() {
     }
   }, [activeTab, prayerData, prayerLoading, fetchPrayerTimes]);
 
+  // Auto-refresh prayer times at midnight (new day = new prayer times)
+  useEffect(() => {
+    if (!prayerData) return;
+
+    const scheduleMidnightRefresh = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const msUntilMidnight = midnight.getTime() - now.getTime();
+
+      const timer = setTimeout(() => {
+        fetchPrayerTimes(true); // use cached location, instant refresh
+        scheduleMidnightRefresh(); // schedule next midnight
+      }, msUntilMidnight);
+
+      return () => clearTimeout(timer);
+    };
+
+    const cleanup = scheduleMidnightRefresh();
+    return () => { if (cleanup) cleanup(); };
+  }, [prayerData, fetchPrayerTimes]);
+
   // === Prayer Notification System ===
 
   // Check if device is on silent mode using Web Audio API
@@ -799,7 +821,7 @@ export default function Home() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-emerald-900 p-4">
               <Button
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold h-12 text-sm gap-2"
-                onClick={() => { fetchPrayerTimes(true); }}
+                onClick={() => { fetchPrayerTimes(false); }}
                 disabled={prayerLoading}
               >
                 <MapPin className="w-4 h-4" />
@@ -850,7 +872,7 @@ export default function Home() {
                   <Clock className="w-5 h-5 text-emerald-700" />
                   <h3 className="text-lg font-semibold text-foreground">Prayer Times</h3>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchPrayerTimes} disabled={prayerLoading} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                <Button variant="outline" size="sm" onClick={() => fetchPrayerTimes(false)} disabled={prayerLoading} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
                   <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${prayerLoading ? "animate-spin" : ""}`} />
                   Refresh
                 </Button>
@@ -866,7 +888,7 @@ export default function Home() {
               {prayerError && !prayerLoading && (
                 <div className="text-center py-8">
                   <p className="text-sm text-red-500 mb-3">{prayerError}</p>
-                  <Button onClick={() => fetchPrayerTimes(true)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">Try Again</Button>
+                  <Button onClick={() => fetchPrayerTimes(false)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">Try Again</Button>
                 </div>
               )}
 
