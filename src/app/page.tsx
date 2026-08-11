@@ -518,6 +518,7 @@ export default function Home() {
     setTasbeehArabic(p.arabic);
     setTasbeehTarget(p.target);
     setTasbeehCount(0);
+    setTasbeehTotal(0);
     setShowCustom(false);
   }, []);
 
