@@ -1,7 +1,6 @@
 // Ruku boundaries: for each surah, the ayah numbers where each ruku STARTS.
 // Index 0 = placeholder, index 1-114 = surahs.
 // Each array entry lists the ayahInSurah numbers that mark the beginning of each ruku.
-// This allows dynamic ruku tracking as the user scrolls through ayahs.
 // Total: exactly 540 Rukus (standard Quran ruku division).
 
 export const rukuBoundaries: number[][] = [
@@ -14,7 +13,7 @@ export const rukuBoundaries: number[][] = [
   [1,11,21,31,41,51,56,61,71,81,91,95,101,111,121,131,141,146,151,156], // 6. Al-An'am (20)
   [1,8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,136,144,152,160,168,176,180], // 7. Al-A'raf (24)
   [1,11,20,30,39,45,53,60,67,75],                     // 8. Al-Anfal (10)
-  [1,7,16,25,32,38,46,52,60,69,74,81,90,100,111,118,123,129], // 9. At-Tawbah (16)
+  [1,7,16,25,32,38,46,52,60,69,74,81,90,100,111,118,123,129], // 9. At-Tawbah (18)
   [1,11,21,31,41,53,61,71,80,90,100],                   // 10. Yunus (11)
   [1,8,18,25,36,47,58,68,84,100,110],                   // 11. Hud (11)
   [1,7,15,23,32,43,53,64,76,87,99,111],                 // 12. Yusuf (12)
@@ -124,12 +123,10 @@ export const rukuBoundaries: number[][] = [
 
 /**
  * Get the ruku number (1-based) for a given ayah within a surah.
- * Returns the ruku that contains this ayah.
  */
 export function getRukuForAyah(surahId: number, ayahInSurah: number): number {
   const boundaries = rukuBoundaries[surahId];
   if (!boundaries || boundaries.length === 0) return 1;
-
   let ruku = 1;
   for (let i = 1; i < boundaries.length; i++) {
     if (ayahInSurah >= boundaries[i]) {
@@ -141,17 +138,10 @@ export function getRukuForAyah(surahId: number, ayahInSurah: number): number {
   return ruku;
 }
 
-/**
- * Get the total number of rukus for a surah.
- */
 export function getRukuCount(surahId: number): number {
   return rukuBoundaries[surahId]?.length || 0;
 }
 
-/**
- * Get global ruku number (1-540) for a given ayah.
- * Counts all rukus from Surah 1 up to and including the current one.
- */
 export function getGlobalRuku(surahId: number, ayahInSurah: number): number {
   let global = 0;
   for (let s = 1; s < surahId; s++) {
@@ -161,11 +151,6 @@ export function getGlobalRuku(surahId: number, ayahInSurah: number): number {
   return global;
 }
 
-/**
- * Determine the current Hizb (1-60) based on scroll position within a para.
- * Each para has 2 hizbs. First half = hizbStart, second half = hizbStart + 1.
- * We approximate by the fraction of ayahs scrolled through in the para.
- */
 export function getHizbForPosition(
   paraId: number,
   totalAyahsInPara: number,
