@@ -380,19 +380,33 @@ export default function Home() {
   }, [playNext]);
 
   // Fetch prayer times
-  const fetchPrayerTimes = useCallback(async () => {
+  const fetchPrayerTimes = useCallback(async (useCachedLocation = false) => {
     setPrayerLoading(true);
     setPrayerError("");
 
     try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 10000,
-          enableHighAccuracy: false,
+      let lat: number, lng: number;
+
+      // Try cached location first for instant refresh
+      const cachedLoc = (() => { try { return JSON.parse(localStorage.getItem("prayer-location") || "null"); } catch { return null; } })();
+
+      if (useCachedLocation && cachedLoc) {
+        lat = cachedLoc.lat;
+        lng = cachedLoc.lng;
+      } else {
+        // Get fresh location
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 8000,
+            enableHighAccuracy: false,
+            maximumAge: 300000, // accept 5-min cached position
+          });
         });
-      });
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        // Cache location for next time
+        try { localStorage.setItem("prayer-location", JSON.stringify({ lat, lng })); } catch {}
+      }
 
       const res = await fetch(`/api/prayer?lat=${lat}&lng=${lng}`);
       const data = await res.json();
@@ -400,9 +414,21 @@ export default function Home() {
         setPrayerError(data.error);
       } else {
         setPrayerData(data);
-        const locName = data.meta.locationName || data.meta.timezone;
       }
     } catch (err) {
+      // If geolocation fails but we have cached location, use it
+      const cachedLoc = (() => { try { return JSON.parse(localStorage.getItem("prayer-location") || "null"); } catch { return null; } })();
+      if (cachedLoc && !useCachedLocation) {
+        try {
+          const res = await fetch(`/api/prayer?lat=${cachedLoc.lat}&lng=${cachedLoc.lng}`);
+          const data = await res.json();
+          if (!data.error) {
+            setPrayerData(data);
+            setPrayerLoading(false);
+            return;
+          }
+        } catch {}
+      }
       if (err instanceof GeolocationPositionError) {
         setPrayerError("Location access denied. Please enable location permission and try again.");
       } else {
@@ -773,7 +799,7 @@ export default function Home() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-emerald-900 p-4">
               <Button
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold h-12 text-sm gap-2"
-                onClick={() => { setPrayerData(null); fetchPrayerTimes(); }}
+                onClick={() => { fetchPrayerTimes(true); }}
                 disabled={prayerLoading}
               >
                 <MapPin className="w-4 h-4" />
@@ -840,7 +866,7 @@ export default function Home() {
               {prayerError && !prayerLoading && (
                 <div className="text-center py-8">
                   <p className="text-sm text-red-500 mb-3">{prayerError}</p>
-                  <Button onClick={fetchPrayerTimes} size="sm" className="bg-emerald-700 hover:bg-emerald-800">Try Again</Button>
+                  <Button onClick={() => fetchPrayerTimes(true)} size="sm" className="bg-emerald-700 hover:bg-emerald-800">Try Again</Button>
                 </div>
               )}
 
