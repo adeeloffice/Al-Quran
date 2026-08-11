@@ -942,22 +942,12 @@ export default function Home() {
                           const boundaries = rukuBoundaries[surahData.surah];
                           const isLastAyahOfRuku = boundaries ? (aIdx === surahData.ayahs.length - 1 || boundaries.includes(ayah.numberInSurah + 1)) : false;
                           const isSajda = SAJDA_AYAHS[surahData.surah]?.includes(ayah.numberInSurah) || false;
-                          // Hizb quarter markers: approximate at ¼, ½, ¾ through the para's ayahs
-                          const totalParaAyahs = paraSurahsData.reduce((sum, s) => sum + s.ayahs.length, 0);
-                          const globalIdx = cumOffsets[sIdx] + aIdx;
-                          const frac = totalParaAyahs > 0 ? globalIdx / totalParaAyahs : 0;
-                          let hizbMarker: React.ReactNode = null;
-                          if (totalParaAyahs > 0) {
-                            if (Math.abs(frac - 0.25) < 0.008) hizbMarker = <span className="inline-flex items-center justify-center align-middle mx-1 text-emerald-700 text-sm font-bold">﴾ ¼ ﴿</span>;
-                            else if (Math.abs(frac - 0.5) < 0.008) hizbMarker = <span className="inline-flex items-center justify-center align-middle mx-1 text-emerald-700 text-sm font-bold">﴾ ½ ﴿</span>;
-                            else if (Math.abs(frac - 0.75) < 0.008) hizbMarker = <span className="inline-flex items-center justify-center align-middle mx-1 text-emerald-700 text-sm font-bold">﴾ ¾ ﴿</span>;
-                          }
                           return (
                             <span
                               key={ayah.number}
                               data-surah={surahData.surah}
                               data-ayah={ayah.numberInSurah}
-                              data-global-idx={globalIdx}
+                              data-global-idx={cumOffsets[sIdx] + aIdx}
                               className="inline"
                             >
                               {(() => {
@@ -974,7 +964,6 @@ export default function Home() {
                                 <span className="mt-0.5">{toArabicNumeral(ayah.numberInSurah)}</span>
                               </span>
                               {isLastAyahOfRuku && <span className="inline-flex items-center justify-center mx-1.5 text-amber-800 align-middle" style={{fontFamily:"'Amiri Quran',serif",fontSize:"1.4rem"}}>ع</span>}
-                              {hizbMarker}
                             </span>
                           );
                         })}
