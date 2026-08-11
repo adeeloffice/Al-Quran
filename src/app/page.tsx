@@ -641,6 +641,7 @@ export default function Home() {
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: "asmaulhusna", label: "Asma ul Husna", icon: <Sparkles className="w-4 h-4" /> },
+    { key: "recitation", label: "Recitation", icon: <Headphones className="w-4 h-4" /> },
     { key: "surahs", label: "Bayan ul Quran", icon: <Headphones className="w-4 h-4" /> },
     { key: "quran", label: "Quran", icon: <BookText className="w-4 h-4" /> },
     { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
@@ -720,7 +721,7 @@ export default function Home() {
               </a>
               <Button size="sm" className="bg-amber-300 hover:bg-amber-200 text-emerald-900 text-xs sm:text-sm gap-1.5 font-bold shadow-md hover:shadow-lg" onClick={() => { setEntered(false); setShowPlayer(false); if (audioRef.current) { audioRef.current.pause(); } }}>
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span>Sign Out</span>
               </Button>
             </div>
           </div>
@@ -1031,6 +1032,23 @@ export default function Home() {
         )}
 
         
+        {activeTab === "recitation" && (
+          <div>
+            <div className="text-center mb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-emerald-800" dir="rtl">اقراءۃ</h2>
+              <p className="text-sm text-muted-foreground mt-1">Quran Recitation by Qari Abdul Basit</p>
+            </div>
+            <iframe
+              className="w-full border border-emerald-200 rounded-xl"
+              style={{ height: "75vh" }}
+              src="https://www.quranurdu.com/Q_Basit/"
+              title="Quran Recitation - Qari Abdul Basit"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )}
+
         {activeTab === "prayer" && (
           <div className="space-y-6">
             
