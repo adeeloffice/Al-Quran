@@ -98,10 +98,6 @@ export default function Home() {
   const [prayerLoading, setPrayerLoading] = useState(false);
   const [prayerError, setPrayerError] = useState("");
 
-  const [prayerNotifEnabled, setPrayerNotifEnabled] = useState(false);
-  const [silentModeDetected, setSilentModeDetected] = useState(false);
-  const notifTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const notifiedPrayersRef = useRef<Set<string>>(new Set());
 
   // Restore state from localStorage on mount
   useEffect(() => {
@@ -115,7 +111,6 @@ export default function Home() {
         if (s.activeTab) setActiveTab(s.activeTab);
         if (s.volume !== undefined) setVolume(s.volume);
         if (s.isMuted !== undefined) setIsMuted(s.isMuted);
-        if (s.prayerNotifEnabled) setPrayerNotifEnabled(true);
 
         if (s.trackUrl) {
           const track: SurahAudio = { url: s.trackUrl, title: s.trackTitle || "" };
@@ -140,14 +135,14 @@ export default function Home() {
 
   // Save state to localStorage on changes
   useEffect(() => {
-    const state: any = { entered, activeTab, volume, isMuted, prayerNotifEnabled };
+    const state: any = { entered, activeTab, volume, isMuted };
     if (currentTrack) {
       state.trackUrl = currentTrack.url;
       state.trackTitle = currentTrack.title;
       if (currentSurah) state.surahId = currentSurah.id;
     }
     try { localStorage.setItem("bayan-ul-quran-state", JSON.stringify(state)); } catch {}
-  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah, prayerNotifEnabled]);
+  }, [entered, activeTab, volume, isMuted, currentTrack, currentSurah]);
 
   // Restore audio position after track loads (only if same track URL)
   useEffect(() => {
@@ -467,179 +462,6 @@ export default function Home() {
     return () => { if (cleanup) cleanup(); };
   }, [prayerData, fetchPrayerTimes]);
 
-  // === Prayer Notification System ===
-
-  // Check if device is on silent mode using Web Audio API
-  const checkSilentMode = useCallback(async () => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      gain.gain.value = 0.001; // near-silent test tone
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      await ctx.resume();
-      // If the context starts in 'suspended' state, device may be on silent
-      if (ctx.state === 'suspended') {
-        try {
-          await ctx.resume();
-          // If it still won't resume, likely silent mode
-          if (ctx.state === 'suspended') {
-            setSilentModeDetected(true);
-            ctx.close();
-            return true;
-          }
-        } catch {
-          setSilentModeDetected(true);
-          ctx.close();
-          return true;
-        }
-      }
-      ctx.close();
-      setSilentModeDetected(false);
-      return false;
-    } catch {
-      setSilentModeDetected(false);
-      return false;
-    }
-  }, []);
-
-  // Play Allahu Akbar alert sound using Web Audio API (synthesized)
-  const playAllahuAkbarAlert = useCallback(async () => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      await ctx.resume();
-
-      // Create a rich tone for the adhan-like alert
-      const playTone = (freq: number, startTime: number, duration: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-        gain.gain.setValueAtTime(0.3, startTime + duration - 0.1);
-        gain.gain.linearRampToValueAtTime(0, startTime + duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-      };
-
-      const now = ctx.currentTime;
-      // Allahu Akbar melody - ascending tones
-      playTone(392, now, 0.4);        // G4
-      playTone(440, now + 0.4, 0.4);  // A4
-      playTone(523, now + 0.8, 0.6);  // C5
-      playTone(587, now + 1.4, 0.6);  // D5
-      playTone(523, now + 2.0, 0.4);  // C5
-      playTone(440, now + 2.4, 0.5);  // A4
-      playTone(392, now + 2.9, 0.8);  // G4
-
-      setTimeout(() => ctx.close(), 4500);
-    } catch {}
-  }, []);
-
-  // Request notification permission
-  const requestNotifPermission = useCallback(async () => {
-    if (!('Notification' in window)) return false;
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') return false;
-    const perm = await Notification.requestPermission();
-    return perm === 'granted';
-  }, []);
-
-  // Toggle notification on/off
-  const togglePrayerNotif = useCallback(async () => {
-    if (!prayerNotifEnabled) {
-      // Turning ON
-      const isSilent = await checkSilentMode();
-      if (isSilent) {
-        // Don't enable if silent mode - show message
-        return;
-      }
-      const granted = await requestNotifPermission();
-      if (granted) {
-        setPrayerNotifEnabled(true);
-      }
-    } else {
-      // Turning OFF
-      setPrayerNotifEnabled(false);
-      if (notifTimerRef.current) {
-        clearInterval(notifTimerRef.current);
-        notifTimerRef.current = null;
-      }
-      notifiedPrayersRef.current.clear();
-    }
-  }, [prayerNotifEnabled, checkSilentMode, requestNotifPermission]);
-
-  // Notification checker - runs every 30 seconds when enabled
-  useEffect(() => {
-    if (!prayerNotifEnabled || !prayerData) {
-      if (notifTimerRef.current) {
-        clearInterval(notifTimerRef.current);
-        notifTimerRef.current = null;
-      }
-      return;
-    }
-
-    const check = () => {
-      const now = new Date();
-      const nowMins = now.getHours() * 60 + now.getMinutes();
-      const prayerNames = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]; // exclude Sunrise
-
-      for (const name of prayerNames) {
-        const timeStr = prayerData.timings[name];
-        if (!timeStr) continue;
-        const t = timeStr.split(" ")[0];
-        const [h, m] = t.split(":").map(Number);
-        const pMins = h * 60 + m;
-        const key = `${name}-${now.toDateString()}`;
-
-        // Check if it's prayer time (within 1 minute window)
-        if (Math.abs(nowMins - pMins) <= 1 && !notifiedPrayersRef.current.has(key)) {
-          notifiedPrayersRef.current.add(key);
-
-          // Send browser notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(`Azan - ${name}`, {
-              body: `It's time for ${name} prayer. ${formatTime12(t)}`,
-              icon: '/icon-192.png',
-              tag: key,
-              requireInteraction: true,
-            });
-          }
-
-          // Play Allahu Akbar sound
-          playAllahuAkbarAlert();
-        }
-      }
-    };
-
-    // Check immediately
-    check();
-    // Then every 30 seconds
-    notifTimerRef.current = setInterval(check, 30000);
-
-    return () => {
-      if (notifTimerRef.current) {
-        clearInterval(notifTimerRef.current);
-        notifTimerRef.current = null;
-      }
-    };
-  }, [prayerNotifEnabled, prayerData, playAllahuAkbarAlert]);
-
-  // Check silent mode on mount and when tab becomes visible
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && prayerNotifEnabled) {
-        checkSilentMode();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [prayerNotifEnabled, checkSilentMode]);
-
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
@@ -835,37 +657,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Prayer Notification Toggle */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <span className="text-lg">🔔</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-foreground">Prayer Notifications</p>
-                    <p className="text-xs text-muted-foreground">Allahu Akbar alert at prayer time</p>
-                  </div>
-                </div>
-                <button
-                  onClick={togglePrayerNotif}
-                  className={`relative w-12 h-7 rounded-full transition-colors duration-200 ${prayerNotifEnabled ? "bg-emerald-600" : "bg-gray-300 dark:bg-gray-600"}`}
-                  aria-label="Toggle prayer notifications"
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${prayerNotifEnabled ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-              {silentModeDetected && (
-                <div className="mt-3 flex items-start gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <span className="text-amber-600 text-sm mt-0.5">⚠️</span>
-                  <p className="text-xs text-amber-700 dark:text-amber-400">Your device is on <b>silent mode</b>. Notifications will not produce sound. Please turn off silent mode to hear the Allahu Akbar alert.</p>
-                </div>
-              )}
-              {prayerNotifEnabled && !silentModeDetected && (
-                <p className="mt-2 text-xs text-emerald-600 text-center">✓ Notifications active — Allahu Akbar will play at each prayer time</p>
-              )}
-            </div>
-            
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
