@@ -1,10 +1,6 @@
-const CACHE_NAME = 'bayan-ul-quran-v1';
-const PRECACHE_URLS = ['/'];
+const CACHE_NAME = 'bayan-ul-quran-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
   self.skipWaiting();
 });
 
@@ -18,7 +14,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first, fallback to cache
+  // Network first, fallback to cache — ensures fresh assets always
   event.respondWith(
     fetch(event.request)
       .then((response) => {
