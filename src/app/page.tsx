@@ -466,7 +466,7 @@ export default function Home() {
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: "surahs", label: "Bayan ul Quran", icon: <Headphones className="w-4 h-4" /> },
-    { key: "prayer", label: "Prayer", icon: <Compass className="w-4 h-4" /> },
+    { key: "prayer", label: "Prayer Times", icon: <Compass className="w-4 h-4" /> },
   ];
 
   // Landing screen
