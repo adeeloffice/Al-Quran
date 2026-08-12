@@ -852,23 +852,25 @@ export default function Home() {
                     className="h-9 text-sm"
                     dir="rtl"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Input
                       placeholder="Name (e.g. SubhanAllah)"
                       value={customTasbeeh}
                       onChange={(e) => setCustomTasbeeh(e.target.value)}
-                      className="flex-1 h-9 text-sm"
+                      className="w-full h-9 text-sm sm:flex-1"
                     />
-                    <Input
-                      placeholder="Count"
-                      type="number"
-                      value={customTarget}
-                      onChange={(e) => setCustomTarget(e.target.value)}
-                      className="w-20 h-9 text-sm"
-                    />
-                    <Button onClick={applyCustomTasbeeh} size="sm" className="bg-emerald-700 hover:bg-emerald-800 h-9 px-4">
-                      Add
-                    </Button>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Count"
+                        type="number"
+                        value={customTarget}
+                        onChange={(e) => setCustomTarget(e.target.value)}
+                        className="w-20 h-9 text-sm"
+                      />
+                      <Button onClick={applyCustomTasbeeh} size="sm" className="bg-emerald-700 hover:bg-emerald-800 h-9 px-4">
+                        Add
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
