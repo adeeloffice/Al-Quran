@@ -524,19 +524,22 @@ export default function Home() {
 
   const applyCustomTasbeeh = useCallback(() => {
     const name = customTasbeeh.trim();
-    const arabic = customArabic.trim() || name;
+    const arabic = customArabic.trim();
     const target = parseInt(customTarget) || 33;
-    if (name) {
-      const newPreset: TasbeehPreset = { id: `custom-${Date.now()}`, name, arabic, target };
+    if (name || arabic) {
+      const displayName = name || arabic;
+      const displayArabic = arabic || name;
+      const newPreset: TasbeehPreset = { id: `custom-${Date.now()}`, name: displayName, arabic: displayArabic, target };
       setCustomPresets((prev) => {
         const updated = [...prev, newPreset];
         try { localStorage.setItem("tasbeeh-custom", JSON.stringify(updated)); } catch {}
         return updated;
       });
-      setTasbeehName(name);
-      setTasbeehArabic(arabic);
+      setTasbeehName(displayName);
+      setTasbeehArabic(displayArabic);
       setTasbeehTarget(target);
       setTasbeehCount(0);
+      setTasbeehTotal(0);
       setCustomTasbeeh("");
       setCustomArabic("");
       setCustomTarget("");
