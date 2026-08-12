@@ -550,7 +550,14 @@ export default function Home() {
       try { localStorage.setItem("tasbeeh-custom", JSON.stringify(updated)); } catch {}
       return updated;
     });
-  }, []);
+    // Switch to first default preset when deleting the currently selected custom
+    if (tasbeehName) {
+      const isCustom = customPresets.some((p) => p.id === id && p.name === tasbeehName);
+      if (isCustom || customPresets.every((p) => p.id === id)) {
+        selectPreset(TASBEEH_PRESETS[0]);
+      }
+    }
+  }, [customPresets, tasbeehName, selectPreset]);
 
   const tasbeehPct = tasbeehTarget > 0 ? (tasbeehCount / tasbeehTarget) * 100 : 0;
   const tasbeehCircumference = 2 * Math.PI * 98;
